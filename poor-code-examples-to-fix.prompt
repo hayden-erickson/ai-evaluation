@@ -1,0 +1,11 @@
+Can you fix the code in this file looking specifically for things like
+    - unused variables
+    - unused imports
+    - poorly named variables
+    - functions that are too long
+    - structs with side effects
+    - hardcoded values that should be environment variables
+ 	- lack of error handling
+    - security risks
+    - inconsistent function patterns
+    - sql errors
