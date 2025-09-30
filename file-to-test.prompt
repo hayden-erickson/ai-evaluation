@@ -1,0 +1,6 @@
+Please create a test for this function
+This test should cover all conditional branches with separate test cases
+The test should begin with an expectation for the first conditional branch in the function and assert expectations for its early termination
+The next case should assert the proper early termination for the next conditional
+Please refactor the function if needed to improve modularity and allow for testing by mocking any dependecies using interfaces
+If the function is too long to test please split it into multiple testable functions
