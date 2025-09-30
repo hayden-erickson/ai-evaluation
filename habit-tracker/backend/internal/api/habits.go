@@ -2,13 +2,14 @@ package api
 
 import (
 	"net/http"
-	"strconv"
+	"sort"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/hayden-erickson/habit-tracker/internal/auth"
 	"github.com/hayden-erickson/habit-tracker/internal/db"
 	"github.com/hayden-erickson/habit-tracker/internal/models"
+	"github.com/jinzhu/gorm"
 )
 
 // HabitInput represents the input for creating/updating a habit

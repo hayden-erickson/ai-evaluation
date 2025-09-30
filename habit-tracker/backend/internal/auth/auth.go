@@ -58,15 +58,18 @@ func LoginHandler(c *gin.Context) {
 
 // CallbackHandler handles the Google OAuth callback
 func CallbackHandler(c *gin.Context) {
-	code := c.Query("code")
-	token, err := config.Exchange(c, code)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Failed to exchange token"})
+	var requestBody struct {
+		AccessToken string `json:"accessToken"`
+	}
+	if err := c.ShouldBindJSON(&requestBody); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
 		return
 	}
 
-	client := config.Client(c, token)
-	resp, err := client.Get("https://www.googleapis.com/oauth2/v2/userinfo")
+	client := &http.Client{}
+	req, _ := http.NewRequest("GET", "https://www.googleapis.com/oauth2/v2/userinfo", nil)
+	req.Header.Set("Authorization", "Bearer "+requestBody.AccessToken)
+	resp, err := client.Do(req)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Failed to get user info"})
 		return
@@ -85,10 +88,10 @@ func CallbackHandler(c *gin.Context) {
 		// Create new user
 		user = models.User{
 			GoogleID:        googleUser.ID,
-			Email:          googleUser.Email,
-			Name:           googleUser.Name,
+			Email:           googleUser.Email,
+			Name:            googleUser.Name,
 			ProfileImageURL: googleUser.Picture,
-			TimeZone:       "UTC", // Default timezone, can be updated later
+			TimeZone:        "UTC", // Default timezone, can be updated later
 		}
 		if err := db.DB.Create(&user).Error; err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create user"})
@@ -97,7 +100,7 @@ func CallbackHandler(c *gin.Context) {
 	}
 
 	// Generate JWT
-	token, err = generateToken(user.ID)
+	tokenJWT, err := generateToken(user.ID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate token"})
 		return
@@ -105,7 +108,7 @@ func CallbackHandler(c *gin.Context) {
 
 	// In production, redirect to frontend with token
 	c.JSON(http.StatusOK, gin.H{
-		"token": token,
+		"token": tokenJWT,
 		"user":  user,
 	})
 }

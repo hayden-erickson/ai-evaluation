@@ -5,11 +5,11 @@ import (
 	"log"
 	"net/url"
 	"os"
-	"strings"
 	"time"
 
 	"github.com/hayden-erickson/habit-tracker/internal/db"
 	"github.com/hayden-erickson/habit-tracker/internal/models"
+	"github.com/jinzhu/gorm"
 )
 
 // CheckAndSendReminders checks all habits and sends reminders for those that need attention

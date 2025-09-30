@@ -77,7 +77,7 @@ func main() {
 			habits.GET("/by-tag", api.GetHabitsByTag)
 
 			// Logs routes
-			logs := habits.Group("/:habitId/logs")
+			logs := habits.Group("/:id/logs")
 			{
 				logs.GET("", api.GetLogs)
 				logs.POST("", api.CreateLog)
@@ -86,7 +86,7 @@ func main() {
 			}
 
 			// Tags routes
-			tags := habits.Group("/:habitId/tags")
+			tags := habits.Group("/:id/tags")
 			{
 				tags.GET("", api.GetTags)
 				tags.POST("", api.CreateTag)

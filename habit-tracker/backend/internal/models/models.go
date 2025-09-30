@@ -51,7 +51,7 @@ type Tag struct {
 // HabitWithStreak represents a habit with its current streak information
 type HabitWithStreak struct {
 	Habit
-	CurrentStreak int `json:"current_streak"`
-	LongestStreak int `json:"longest_streak"`
+	CurrentStreak int        `json:"current_streak"`
+	LongestStreak int        `json:"longest_streak"`
 	LastLogDate   *time.Time `json:"last_log_date,omitempty"`
 }

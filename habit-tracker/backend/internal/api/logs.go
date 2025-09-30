@@ -17,7 +17,7 @@ type LogInput struct {
 // GetLogs returns all logs for a specific habit
 func GetLogs(c *gin.Context) {
 	user := auth.GetCurrentUser(c)
-	habitID := c.Param("habitId")
+	habitID := c.Param("id")
 
 	// Verify habit belongs to user
 	var habit models.Habit
@@ -38,7 +38,7 @@ func GetLogs(c *gin.Context) {
 // CreateLog creates a new log for a habit
 func CreateLog(c *gin.Context) {
 	user := auth.GetCurrentUser(c)
-	habitID := c.Param("habitId")
+	habitID := c.Param("id")
 
 	// Verify habit belongs to user
 	var habit models.Habit
@@ -69,7 +69,7 @@ func CreateLog(c *gin.Context) {
 // UpdateLog updates an existing log
 func UpdateLog(c *gin.Context) {
 	user := auth.GetCurrentUser(c)
-	habitID := c.Param("habitId")
+	habitID := c.Param("id")
 	logID := c.Param("logId")
 
 	// Verify habit belongs to user
@@ -102,7 +102,7 @@ func UpdateLog(c *gin.Context) {
 // DeleteLog deletes a log
 func DeleteLog(c *gin.Context) {
 	user := auth.GetCurrentUser(c)
-	habitID := c.Param("habitId")
+	habitID := c.Param("id")
 	logID := c.Param("logId")
 
 	// Verify habit belongs to user

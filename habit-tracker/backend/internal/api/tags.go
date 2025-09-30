@@ -17,7 +17,7 @@ type TagInput struct {
 // GetTags returns all tags for a specific habit
 func GetTags(c *gin.Context) {
 	user := auth.GetCurrentUser(c)
-	habitID := c.Param("habitId")
+	habitID := c.Param("id")
 
 	// Verify habit belongs to user
 	var habit models.Habit
@@ -38,7 +38,7 @@ func GetTags(c *gin.Context) {
 // CreateTag adds a new tag to a habit
 func CreateTag(c *gin.Context) {
 	user := auth.GetCurrentUser(c)
-	habitID := c.Param("habitId")
+	habitID := c.Param("id")
 
 	// Verify habit belongs to user
 	var habit models.Habit
@@ -76,7 +76,7 @@ func CreateTag(c *gin.Context) {
 // DeleteTag removes a tag from a habit
 func DeleteTag(c *gin.Context) {
 	user := auth.GetCurrentUser(c)
-	habitID := c.Param("habitId")
+	habitID := c.Param("id")
 	tagID := c.Param("tagId")
 
 	// Verify habit belongs to user
