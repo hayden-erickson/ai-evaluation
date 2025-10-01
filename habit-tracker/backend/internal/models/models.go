@@ -32,11 +32,12 @@ type Habit struct {
 
 // Log represents a habit tracking entry
 type Log struct {
-	ID        uint      `gorm:"primary_key" json:"id"`
-	HabitID   uint      `json:"habit_id"`
-	Notes     string    `json:"notes"`
-	CreatedAt time.Time `json:"created_at"`
-	Habit     Habit     `json:"-"`
+	ID          uint      `gorm:"primary_key" json:"id"`
+	HabitID     uint      `json:"habit_id"`
+	Notes       string    `json:"notes"`
+	CreatedAt   time.Time `json:"created_at"`
+	CompletedAt time.Time `json:"completed_at"`
+	Habit       Habit     `json:"-"`
 }
 
 // Tag represents a label attached to a habit

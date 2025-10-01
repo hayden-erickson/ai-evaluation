@@ -44,20 +44,25 @@ export const HabitStats = ({ habit }: HabitStatsProps) => {
                 const logs = await getLogs(habit.id);
                 
                 // Sort logs by date
-                const sortedLogs = logs.sort((a, b) => 
-                    new Date(a.completedAt).getTime() - new Date(b.completedAt).getTime()
-                );
+                const sortedLogs = logs.sort((a, b) => {
+                    const dateA = new Date(a.completedAt);
+                    const dateB = new Date(b.completedAt);
+                    if (isNaN(dateA.getTime()) || isNaN(dateB.getTime())) return 0;
+                    return dateA.getTime() - dateB.getTime();
+                });
 
                 // Calculate completion rate
-                const daysActive = Math.max(1, Math.floor(
-                    (new Date().getTime() - new Date(habit.createdAt).getTime()) / (1000 * 60 * 60 * 24)
-                ));
+                const createdDate = new Date(habit.createdAt);
+                const daysActive = !isNaN(createdDate.getTime()) ? Math.max(1, Math.floor(
+                    (new Date().getTime() - createdDate.getTime()) / (1000 * 60 * 60 * 24)
+                )) : 1;
                 const completionRate = (logs.length / daysActive) * 100;
 
                 // Find the last completion date
-                const lastCompleted = sortedLogs.length > 0 
-                    ? new Date(sortedLogs[sortedLogs.length - 1].completedAt).toLocaleDateString()
-                    : null;
+                const lastCompleted = sortedLogs.length > 0 ? (() => {
+                    const date = new Date(sortedLogs[sortedLogs.length - 1].completedAt);
+                    return isNaN(date.getTime()) ? null : date.toLocaleDateString();
+                })() : null;
 
                 // Calculate streaks
                 let currentStreak = 0;
@@ -66,7 +71,10 @@ export const HabitStats = ({ habit }: HabitStatsProps) => {
                 
                 // Convert logs to a Set of date strings for easier lookup
                 const completedDates = new Set(
-                    logs.map(log => new Date(log.completedAt).toISOString().split('T')[0])
+                    logs.map(log => {
+                        const date = new Date(log.completedAt);
+                        return !isNaN(date.getTime()) ? date.toISOString().split('T')[0] : null;
+                    }).filter((date): date is string => date !== null)
                 );
 
                 // Check the last 30 days for current streak

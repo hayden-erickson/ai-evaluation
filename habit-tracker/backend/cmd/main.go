@@ -59,7 +59,7 @@ func main() {
 
 	// Authentication routes
 	r.GET("/auth/google/login", auth.LoginHandler)
-	r.GET("/auth/google/callback", auth.CallbackHandler)
+	r.POST("/auth/google/callback", auth.CallbackHandler)
 
 	// Protected routes
 	protected := r.Group("/api")

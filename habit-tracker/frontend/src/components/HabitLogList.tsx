@@ -50,24 +50,20 @@ export const HabitLogList = ({ habit }: HabitLogListProps) => {
 
     const [formData, setFormData] = useState<LogFormData>({
         notes: '',
-        completedAt: format(new Date(), 'yyyy-MM-dd'),
+        completedAt: new Date().toISOString().split('T')[0],
     });
 
     const fetchLogs = async () => {
         try {
             const fetchedLogs = await getLogs(habit.id);
-            const sortedLogs = fetchedLogs.sort((a, b) => 
-                new Date(b.completedAt).getTime() - new Date(a.completedAt).getTime()
-            );
-            
-            // Filter logs by selected tags if any
-            const filteredLogs = selectedTags?.length
-                ? sortedLogs.filter(log => 
-                    log.tags?.some(tag => selectedTags.includes(tag.value))
-                )
-                : sortedLogs;
-            
-            setLogs(filteredLogs);
+            const sortedLogs = fetchedLogs.sort((a, b) => {
+                const dateA = new Date(a.completedAt);
+                const dateB = new Date(b.completedAt);
+                if (isNaN(dateA.getTime()) || isNaN(dateB.getTime())) return 0;
+                return dateB.getTime() - dateA.getTime();
+            });
+
+            setLogs(sortedLogs);
         } catch (error) {
             console.error('Failed to fetch logs:', error);
             toast({
@@ -89,10 +85,11 @@ export const HabitLogList = ({ habit }: HabitLogListProps) => {
     const handleOpenModal = (log?: Log) => {
         if (log) {
             setSelectedLog(log);
+            const date = new Date(log.completedAt);
             setFormData({
                 id: log.id,
                 notes: log.notes,
-                completedAt: format(new Date(log.completedAt), 'yyyy-MM-dd'),
+                completedAt: isNaN(date.getTime()) ? new Date().toISOString().split('T')[0] : date.toISOString().split('T')[0],
             });
         } else {
             setSelectedLog(null);
@@ -179,7 +176,10 @@ export const HabitLogList = ({ habit }: HabitLogListProps) => {
                 <Tbody>
                     {logs.map(log => (
                         <Tr key={log.id}>
-                            <Td>{format(new Date(log.completedAt), 'MMM d, yyyy')}</Td>
+                            <Td>{(() => {
+                                const date = new Date(log.completedAt);
+                                return isNaN(date.getTime()) ? 'Invalid date' : format(date, 'MMM d, yyyy');
+                            })()}</Td>
                             <Td>{log.notes || '-'}</Td>
                             <Td>
                                 <IconButton

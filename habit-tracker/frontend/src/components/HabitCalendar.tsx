@@ -3,7 +3,6 @@ import {
     Box,
     Grid,
     Text,
-    useColorModeValue,
     VStack,
 } from '@chakra-ui/react';
 import Calendar from 'react-calendar';
@@ -22,9 +21,8 @@ interface LogsByDate {
 }
 
 export const HabitCalendar = ({ habits, selectedHabitIds }: HabitCalendarProps) => {
-    const [date, setDate] = useState(new Date());
+    const [date, setDate] = useState<Date>(new Date());
     const [logsByDate, setLogsByDate] = useState<LogsByDate>({});
-    const [isLoading, setIsLoading] = useState(false);
 
     // Color generation for habits
     const habitColors = habits.reduce((acc, habit) => {
@@ -41,7 +39,6 @@ export const HabitCalendar = ({ habits, selectedHabitIds }: HabitCalendarProps) 
                 return;
             }
             
-            setIsLoading(true);
             try {
                 // Fetch logs for the selected habits
                 const promises = selectedHabitIds.map(habitId => getLogs(habitId));
@@ -49,19 +46,20 @@ export const HabitCalendar = ({ habits, selectedHabitIds }: HabitCalendarProps) 
                 
                 // Group logs by date
                 const logsByDateMap = allLogs.reduce((acc: LogsByDate, log: Log) => {
-                    const dateStr = format(new Date(log.completedAt), 'yyyy-MM-dd');
-                    if (!acc[dateStr]) {
-                        acc[dateStr] = [];
+                    const date = new Date(log.completedAt);
+                    if (!isNaN(date.getTime())) {
+                        const dateStr = format(date, 'yyyy-MM-dd');
+                        if (!acc[dateStr]) {
+                            acc[dateStr] = [];
+                        }
+                        acc[dateStr].push(log);
                     }
-                    acc[dateStr].push(log);
                     return acc;
                 }, {});
                 
                 setLogsByDate(logsByDateMap);
             } catch (error) {
                 console.error('Failed to fetch logs:', error);
-            } finally {
-                setIsLoading(false);
             }
         };
 
@@ -70,6 +68,8 @@ export const HabitCalendar = ({ habits, selectedHabitIds }: HabitCalendarProps) 
 
     // Render habit completion dots for each date
     const renderTileContent = ({ date }: { date: Date }) => {
+        if (!date || isNaN(date.getTime())) return null;
+        
         const dateStr = format(date, 'yyyy-MM-dd');
         const logs = logsByDate[dateStr] || [];
         const filteredLogs = logs.filter(log => selectedHabitIds.includes(log.habitId));
@@ -102,7 +102,7 @@ export const HabitCalendar = ({ habits, selectedHabitIds }: HabitCalendarProps) 
 
     // Custom tile className function
     const getTileClassName = ({ date, view }: { date: Date; view: string }) => {
-        if (view !== 'month') return '';
+        if (view !== 'month' || !date || isNaN(date.getTime())) return '';
         
         const dateStr = format(date, 'yyyy-MM-dd');
         const logs = logsByDate[dateStr] || [];
@@ -115,7 +115,11 @@ export const HabitCalendar = ({ habits, selectedHabitIds }: HabitCalendarProps) 
         <Box>
             <VStack spacing={4} align="stretch">
                 <Calendar
-                    onChange={setDate}
+                    onChange={(value) => {
+                        if (value instanceof Date && !isNaN(value.getTime())) {
+                            setDate(value);
+                        }
+                    }}
                     value={date}
                     tileContent={renderTileContent}
                     tileClassName={getTileClassName}

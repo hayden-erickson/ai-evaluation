@@ -2,6 +2,7 @@ package api
 
 import (
 	"net/http"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/hayden-erickson/habit-tracker/internal/auth"
@@ -11,7 +12,8 @@ import (
 
 // LogInput represents the input for creating/updating a log
 type LogInput struct {
-	Notes string `json:"notes"`
+	Notes       string `json:"notes"`
+	CompletedAt string `json:"completedAt"` // Format: YYYY-MM-DD
 }
 
 // GetLogs returns all logs for a specific habit
@@ -53,9 +55,16 @@ func CreateLog(c *gin.Context) {
 		return
 	}
 
+	completedAt, err := time.Parse("2006-01-02", input.CompletedAt)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid date format. Use YYYY-MM-DD"})
+		return
+	}
+
 	log := models.Log{
-		HabitID: habit.ID,
-		Notes:   input.Notes,
+		HabitID:     habit.ID,
+		Notes:       input.Notes,
+		CompletedAt: completedAt,
 	}
 
 	if err := db.DB.Create(&log).Error; err != nil {
@@ -91,7 +100,16 @@ func UpdateLog(c *gin.Context) {
 		return
 	}
 
-	if err := db.DB.Model(&log).Update("notes", input.Notes).Error; err != nil {
+	completedAt, err := time.Parse("2006-01-02", input.CompletedAt)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid date format. Use YYYY-MM-DD"})
+		return
+	}
+
+	if err := db.DB.Model(&log).Updates(map[string]interface{}{
+		"notes":        input.Notes,
+		"completed_at": completedAt,
+	}).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update log"})
 		return
 	}
