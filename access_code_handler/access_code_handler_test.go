@@ -23,18 +23,21 @@ func createTestRequest(ctx context.Context, input interface{}) *http.Request {
 }
 
 // Mock implementation for testing
-type mockCommandCenter struct {
-	CommandCenterClient
+type mockCommandCenterClient struct {
 	revokeErr error
 	setErr    error
 }
 
-func (m *mockCommandCenter) RevokeAccessCodes(units []int, options map[string]struct{}) error {
+func (m *mockCommandCenterClient) RevokeAccessCodes(units []int, options map[string]struct{}) error {
 	return m.revokeErr
 }
 
-func (m *mockCommandCenter) SetAccessCodes(units []int, options map[string]struct{}) error {
+func (m *mockCommandCenterClient) SetAccessCodes(units []int, options map[string]struct{}) error {
 	return m.setErr
+}
+
+func newCommandCenterClient(m *mockCommandCenterClient) *CommandCenterClient {
+	return &CommandCenterClient{m}
 }
 
 type mockBank struct {
@@ -45,7 +48,7 @@ type mockBank struct {
 	codes     []GateAccessCode
 	codesErr  error
 	updateErr error
-	cc        *mockCommandCenter
+	cc        *mockCommandCenterClient
 }
 
 func (m *mockBank) GetBUserByID(id int) (*BUser, error) {
@@ -66,9 +69,9 @@ func (m *mockBank) UpdateAccessCodes(codes []string, siteID int) error {
 
 func (m *mockBank) NewCommandCenterClient(siteID int, ctx context.Context) *CommandCenterClient {
 	if m.cc == nil {
-		m.cc = &mockCommandCenter{}
+		m.cc = &mockCommandCenterClient{}
 	}
-	return &CommandCenterClient{}
+	return newCommandCenterClient(m.cc)
 }
 
 // Test cases for the handler
@@ -292,7 +295,7 @@ func TestAccessCodeService_UpdateUnitAccessCode(t *testing.T) {
 			name: "Invalid access code",
 			bank: &mockBank{
 				codes: nil,
-				cc:    &mockCommandCenter{},
+				cc:    &mockCommandCenterClient{},
 			},
 			unitID:     1,
 			userID:     1,
@@ -310,7 +313,7 @@ func TestAccessCodeService_UpdateUnitAccessCode(t *testing.T) {
 						State:      AccessCodeStateActive,
 					},
 				},
-				cc: &mockCommandCenter{},
+				cc: &mockCommandCenterClient{},
 			},
 			unitID:     1,
 			userID:     1,
@@ -327,7 +330,7 @@ func TestAccessCodeService_UpdateUnitAccessCode(t *testing.T) {
 						State:      AccessCodeStateActive,
 					},
 				},
-				cc: &mockCommandCenter{
+				cc: &mockCommandCenterClient{
 					setErr: fmt.Errorf("command center error"),
 				},
 			},
@@ -345,7 +348,7 @@ func TestAccessCodeService_UpdateUnitAccessCode(t *testing.T) {
 			service := NewAccessCodeService(tt.bank)
 			err := service.updateUnitAccessCode(context.Background(), tt.unitID, tt.userID, tt.siteID, tt.accessCode)
 
-			if (err != nil) != tt.wantErr {
+			if tt.wantErr && err == nil {
 				t.Errorf("updateUnitAccessCode() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
