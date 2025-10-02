@@ -30,7 +30,7 @@ type GateAccessCode struct {
 
 type GateAccessCodes []GateAccessCode
 
-type CommandCenterClient struct{}
+type CommandCenterClientStruct struct{}
 type Bank struct{}
 
 const (
@@ -82,15 +82,15 @@ func (b *Bank) UpdateAccessCodes(codes []string, siteID int) error {
 	return nil
 }
 
-func (b *Bank) NewCommandCenterClient(siteID int, ctx context.Context) *CommandCenterClient {
-	return &CommandCenterClient{}
+func (b *Bank) NewCommandCenterClient(siteID int, ctx context.Context) CommandCenterClient {
+	return &CommandCenterClientStruct{}
 }
 
-func (cc *CommandCenterClient) RevokeAccessCodes(revokeUnits []int, options map[string]struct{}) error {
+func (cc *CommandCenterClientStruct) RevokeAccessCodes(revokeUnits []int, options map[string]struct{}) error {
 	return nil
 }
 
-func (cc *CommandCenterClient) SetAccessCodes(units []int, options map[string]struct{}) error {
+func (cc *CommandCenterClientStruct) SetAccessCodes(units []int, options map[string]struct{}) error {
 	return nil
 }
 
@@ -321,19 +321,19 @@ func AccessCodeEditHandler(w http.ResponseWriter, r *http.Request) {
 
 			revokeUnits, _ = uniqueIntSlice(revokeUnits)
 			// Uses command center to remove the old access code for the unit
-			cc := bank.NewCommandCenterClient(claims.CurrentSite, r.Context())
-			err = cc.RevokeAccessCodes(revokeUnits, make(map[string]struct{}, 0))
-			if err != nil {
-				http.Error(w, fmt.Sprintf("failed to revoke previous access codes: %v", err), http.StatusInternalServerError)
-				return
-			}
+			// cc := bank.NewCommandCenterClient(claims.CurrentSite, r.Context())
+			// err = cc.RevokeAccessCodes(revokeUnits, make(map[string]struct{}, 0))
+			// if err != nil {
+			// 	http.Error(w, fmt.Sprintf("failed to revoke previous access codes: %v", err), http.StatusInternalServerError)
+			// 	return
+			// }
 
 			// Uses command center to set the new access code for the unit
-			err = cc.SetAccessCodes(units, make(map[string]struct{}, 0))
-			if err != nil {
-				http.Error(w, fmt.Sprintf("failed to set access codes: %v", err), http.StatusInternalServerError)
-				return
-			}
+			// err = cc.SetAccessCodes(units, make(map[string]struct{}, 0))
+			// if err != nil {
+			// 	http.Error(w, fmt.Sprintf("failed to set access codes: %v", err), http.StatusInternalServerError)
+			// 	return
+			// }
 		}
 	}
 
