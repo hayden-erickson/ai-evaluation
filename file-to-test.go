@@ -2,7 +2,10 @@ package main
 
 import (
 	"context"
+	"encoding/json"
+	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"strconv"
 	"time"
@@ -32,6 +35,42 @@ type GateAccessCodes []GateAccessCode
 
 type CommandCenterClient struct{}
 type Bank struct{}
+
+type BankService interface {
+	GetBUserByID(int) (*BUser, error)
+	V2UnitGetById(int, int) (*Unit, error)
+	GetCodesForUnits([]int, int) ([]GateAccessCode, error)
+	UpdateAccessCodes([]string, int) error
+	NewCommandCenterClient(int, context.Context) CommandCenter
+}
+
+type CommandCenter interface {
+	RevokeAccessCodes([]int, map[string]struct{}) error
+	SetAccessCodes([]int, map[string]struct{}) error
+}
+
+type GateAccessCodeValidator interface {
+	Validate(bank BankService, codes GateAccessCodes) error
+}
+
+type defaultGateAccessCodeValidator struct{}
+
+func (d defaultGateAccessCodeValidator) Validate(bank BankService, codes GateAccessCodes) error {
+	if len(codes) == 0 {
+		return fmt.Errorf("no access codes provided")
+	}
+
+	for i := range codes {
+		codes[i].IsValid = true
+	}
+	return nil
+}
+
+var (
+	accessCodeValidator  GateAccessCodeValidator = defaultGateAccessCodeValidator{}
+	userAccessCodeEditFn                         = UserAccessCodeEdit
+	nowFunc                                      = time.Now
+)
 
 const (
 	AccessCodeStateActive      = "active"
@@ -67,22 +106,11 @@ func (b *Bank) GetCodesForUnits(units []int, siteID int) ([]GateAccessCode, erro
 	return []GateAccessCode{}, nil
 }
 
-func (gacs GateAccessCodes) Validate(bank *Bank) error {
-	if len(gacs) == 0 {
-		return fmt.Errorf("no access codes provided")
-	}
-
-	for i := range gacs {
-		gacs[i].IsValid = true
-	}
-	return nil
-}
-
 func (b *Bank) UpdateAccessCodes(codes []string, siteID int) error {
 	return nil
 }
 
-func (b *Bank) NewCommandCenterClient(siteID int, ctx context.Context) *CommandCenterClient {
+func (b *Bank) NewCommandCenterClient(siteID int, ctx context.Context) CommandCenter {
 	return &CommandCenterClient{}
 }
 
@@ -101,13 +129,13 @@ const (
 	bankKey   contextKey = "db"
 )
 
-func NewBankContext(ctx context.Context, bank *Bank) context.Context {
+func NewBankContext(ctx context.Context, bank BankService) context.Context {
 	return context.WithValue(ctx, bankKey, bank)
 }
 
 // FromContext returns the BUser value stored in ctx, if any.
-func BankFromContext(ctx context.Context) (*Bank, bool) {
-	bank, ok := ctx.Value(bankKey).(*Bank)
+func BankFromContext(ctx context.Context) (BankService, bool) {
+	bank, ok := ctx.Value(bankKey).(BankService)
 	return bank, ok
 }
 
@@ -169,6 +197,14 @@ func AccessCodeEditHandler(w http.ResponseWriter, r *http.Request) {
 
 	// decode input struct
 	var input inputData
+
+	if r.Body != nil {
+		decoder := json.NewDecoder(r.Body)
+		if err := decoder.Decode(&input); err != nil && !errors.Is(err, io.EOF) {
+			http.Error(w, "Invalid request payload", http.StatusBadRequest)
+			return
+		}
+	}
 
 	// Convert UUIDs to IDs or vice versa
 	if input.UserUUID != "" {
@@ -261,7 +297,7 @@ func AccessCodeEditHandler(w http.ResponseWriter, r *http.Request) {
 			})
 
 			// Checks validity of GateAccessCode object
-			err = gacs.Validate(bank)
+			err = accessCodeValidator.Validate(bank, gacs)
 			if err != nil {
 				http.Error(w, "Internal server error during validation", http.StatusInternalServerError)
 				return
@@ -339,7 +375,7 @@ func AccessCodeEditHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Record access code update activity using activityEvents package
 	// Record activity using the activity package
-	_, err = UserAccessCodeEdit(claims.UserID, user, claims.CurrentSiteUUID, time.Now())
+	_, err = userAccessCodeEditFn(claims.UserID, user, claims.CurrentSiteUUID, nowFunc())
 	if err != nil {
 		http.Error(w, fmt.Sprintf("Recording activity failed: %v", err), http.StatusInternalServerError)
 		return
