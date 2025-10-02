@@ -67,7 +67,7 @@ func (b *Bank) GetCodesForUnits(units []int, siteID int) ([]GateAccessCode, erro
 	return []GateAccessCode{}, nil
 }
 
-func (gacs GateAccessCodes) Validate(bank *Bank) error {
+func (gacs GateAccessCodes) Validate(bank BankService) error {
 	if len(gacs) == 0 {
 		return fmt.Errorf("no access codes provided")
 	}
@@ -146,7 +146,7 @@ func getClaimsFromContext(ctx context.Context) (*Claims, error) {
 	return claims, nil
 }
 
-func AccessCodeEditHandler(w http.ResponseWriter, r *http.Request) {
+func AccessCodeEditHandlerOld(w http.ResponseWriter, r *http.Request) {
 	claims, err := getClaimsFromContext(r.Context())
 	if err != nil {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
