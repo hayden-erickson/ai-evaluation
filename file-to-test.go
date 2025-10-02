@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -31,6 +32,20 @@ type GateAccessCode struct {
 type GateAccessCodes []GateAccessCode
 
 type CommandCenterClient struct{}
+
+type Banker interface {
+	GetBUserByID(BUserID int) (*BUser, error)
+	V2UnitGetById(unitID int, siteID int) (*Unit, error)
+	GetCodesForUnits(units []int, siteID int) ([]GateAccessCode, error)
+	UpdateAccessCodes(codes []string, siteID int) error
+	NewCommandCenterClient(siteID int, ctx context.Context) CommandCenter
+}
+
+type CommandCenter interface {
+	RevokeAccessCodes(revokeUnits []int, options map[string]struct{}) error
+	SetAccessCodes(units []int, options map[string]struct{}) error
+}
+
 type Bank struct{}
 
 const (
@@ -67,7 +82,7 @@ func (b *Bank) GetCodesForUnits(units []int, siteID int) ([]GateAccessCode, erro
 	return []GateAccessCode{}, nil
 }
 
-func (gacs GateAccessCodes) Validate(bank *Bank) error {
+var ValidateGateAccessCodes = func(gacs GateAccessCodes, bank Banker) error {
 	if len(gacs) == 0 {
 		return fmt.Errorf("no access codes provided")
 	}
@@ -78,11 +93,15 @@ func (gacs GateAccessCodes) Validate(bank *Bank) error {
 	return nil
 }
 
+func (gacs GateAccessCodes) Validate(bank Banker) error {
+	return ValidateGateAccessCodes(gacs, bank)
+}
+
 func (b *Bank) UpdateAccessCodes(codes []string, siteID int) error {
 	return nil
 }
 
-func (b *Bank) NewCommandCenterClient(siteID int, ctx context.Context) *CommandCenterClient {
+func (b *Bank) NewCommandCenterClient(siteID int, ctx context.Context) CommandCenter {
 	return &CommandCenterClient{}
 }
 
@@ -101,13 +120,13 @@ const (
 	bankKey   contextKey = "db"
 )
 
-func NewBankContext(ctx context.Context, bank *Bank) context.Context {
+func NewBankContext(ctx context.Context, bank Banker) context.Context {
 	return context.WithValue(ctx, bankKey, bank)
 }
 
 // FromContext returns the BUser value stored in ctx, if any.
-func BankFromContext(ctx context.Context) (*Bank, bool) {
-	bank, ok := ctx.Value(bankKey).(*Bank)
+func BankFromContext(ctx context.Context) (Banker, bool) {
+	bank, ok := ctx.Value(bankKey).(Banker)
 	return bank, ok
 }
 
@@ -146,22 +165,27 @@ func getClaimsFromContext(ctx context.Context) (*Claims, error) {
 	return claims, nil
 }
 
-func AccessCodeEditHandler(w http.ResponseWriter, r *http.Request) {
+type AccessCodeHandler struct {
+	Bank Banker
+}
+
+type inputData struct {
+	UserID     int      `json:"userId" val:"optional"`
+	UserUUID   string   `json:"userUuid" val:"optional"`
+	UnitIDs    []int    `json:"unitID" val:"optional"`
+	UnitUUIDs  []string `json:"unitUUIDs" val:"optional"`
+	AccessCode string   `json:"accessCode"`
+}
+
+func (h *AccessCodeHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	claims, err := getClaimsFromContext(r.Context())
 	if err != nil {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
 
-	type inputData struct {
-		UserID     int      `json:"userId" val:"optional"`
-		UserUUID   string   `json:"userUuid" val:"optional"`
-		UnitIDs    []int    `json:"unitID" val:"optional"`
-		UnitUUIDs  []string `json:"unitUUIDs" val:"optional"`
-		AccessCode string   `json:"accessCode"`
-	}
-
-	bank, ok := BankFromContext(r.Context())
+	var ok bool
+	h.Bank, ok = BankFromContext(r.Context())
 	if !ok {
 		http.Error(w, "Failed to retrieve bank from context", http.StatusInternalServerError)
 		return
@@ -169,6 +193,10 @@ func AccessCodeEditHandler(w http.ResponseWriter, r *http.Request) {
 
 	// decode input struct
 	var input inputData
+	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
 
 	// Convert UUIDs to IDs or vice versa
 	if input.UserUUID != "" {
@@ -194,7 +222,7 @@ func AccessCodeEditHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Check if provided user exists (needs DB)
-	user, err := bank.GetBUserByID(input.UserID)
+	user, err := h.Bank.GetBUserByID(input.UserID)
 	if err != nil {
 		if err.Error() == "no_ob_found" {
 			http.Error(w, "User not found", http.StatusNotFound)
@@ -231,7 +259,7 @@ func AccessCodeEditHandler(w http.ResponseWriter, r *http.Request) {
 
 		if unitID != 0 {
 			// Get unit from DB
-			unit, err := bank.V2UnitGetById(unitID, claims.CurrentSite)
+			unit, err := h.Bank.V2UnitGetById(unitID, claims.CurrentSite)
 			if err != nil {
 				http.Error(w, "Unit not found", http.StatusNotFound)
 				return
@@ -261,7 +289,7 @@ func AccessCodeEditHandler(w http.ResponseWriter, r *http.Request) {
 			})
 
 			// Checks validity of GateAccessCode object
-			err = gacs.Validate(bank)
+			err = gacs.Validate(h.Bank)
 			if err != nil {
 				http.Error(w, "Internal server error during validation", http.StatusInternalServerError)
 				return
@@ -281,7 +309,7 @@ func AccessCodeEditHandler(w http.ResponseWriter, r *http.Request) {
 			units = append(units, unitID)
 
 			// Get existing access codes for the (unit, site) to be revoked
-			revokeGacs, err := bank.GetCodesForUnits(units, claims.CurrentSite)
+			revokeGacs, err := h.Bank.GetCodesForUnits(units, claims.CurrentSite)
 			if err != nil {
 				http.Error(w, "Internal server error updating access codes", http.StatusInternalServerError)
 				return
@@ -306,14 +334,14 @@ func AccessCodeEditHandler(w http.ResponseWriter, r *http.Request) {
 			}
 
 			// Updates access code table - sets status to "remove" for old GACs
-			err = bank.UpdateAccessCodes(convertToStringSlice(updateRemoveGacs), claims.CurrentSite)
+			err = h.Bank.UpdateAccessCodes(convertToStringSlice(updateRemoveGacs), claims.CurrentSite)
 			if err != nil {
 				http.Error(w, "Internal server error updating access codes", http.StatusInternalServerError)
 				return
 			}
 
 			// Updates access code table - inserts new GACs, or updates their status to "setup"
-			err = bank.UpdateAccessCodes(convertToStringSlice(gacs), claims.CurrentSite)
+			err = h.Bank.UpdateAccessCodes(convertToStringSlice(gacs), claims.CurrentSite)
 			if err != nil {
 				http.Error(w, "Internal server error updating access codes", http.StatusInternalServerError)
 				return
@@ -321,7 +349,7 @@ func AccessCodeEditHandler(w http.ResponseWriter, r *http.Request) {
 
 			revokeUnits, _ = uniqueIntSlice(revokeUnits)
 			// Uses command center to remove the old access code for the unit
-			cc := bank.NewCommandCenterClient(claims.CurrentSite, r.Context())
+			cc := h.Bank.NewCommandCenterClient(claims.CurrentSite, r.Context())
 			err = cc.RevokeAccessCodes(revokeUnits, make(map[string]struct{}, 0))
 			if err != nil {
 				http.Error(w, fmt.Sprintf("failed to revoke previous access codes: %v", err), http.StatusInternalServerError)
@@ -348,4 +376,9 @@ func AccessCodeEditHandler(w http.ResponseWriter, r *http.Request) {
 	// Record access code update activity using activityEvents package
 	w.WriteHeader(http.StatusOK)
 	return
+}
+
+func AccessCodeEditHandler(w http.ResponseWriter, r *http.Request) {
+	handler := &AccessCodeHandler{}
+	handler.ServeHTTP(w, r)
 }
