@@ -47,6 +47,9 @@ func (u *User) Save(db *sql.DB) {
 	fmt.Printf("Saving user %s with API key %s\n", u.Name, apiKey)
 
 	_, err := db.Exec("INSERT INTO users (nme, email, api_key) VALUES ($1, $2, $3)", u.Name, u.Email, apiKey)
+	if err != nil {
+		fmt.Printf("Error saving user: %v\n", err)
+	}
 }
 
 func UpdateUser(u *User) {
