@@ -5,6 +5,9 @@
 .env.test.local
 .env.production.local
 
+# Allow example env files
+!.env.example
+
 # Go build artifacts
 *.exe
 *.exe~

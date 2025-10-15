@@ -45,6 +45,11 @@ Contains utility functions:
 Contains context management:
 - **`context.go`**: Context utilities for storing and retrieving values from request context
 
+### 📁 `config/`
+Contains configuration management:
+- **`config.go`**: Application configuration structure and loading logic
+- **`env.go`**: Environment file (.env) parsing and loading
+
 ## Benefits of Refactoring
 
 1. **Separation of Concerns**: Each package has a single, well-defined responsibility
@@ -70,31 +75,55 @@ constants/ constants/ constants/
 
 ## Usage
 
+### Environment Configuration
+
+1. **Copy the example environment file:**
+   ```bash
+   cp .env.example .env
+   ```
+
+2. **Edit `.env` with your actual values:**
+   - Set `JWT_SECRET` and `ENCRYPTION_KEY` (required)
+   - Configure database connection details
+   - Set external service URLs and API keys
+
+### Running the Server
+
 The refactored code can be initialized and used as follows:
 
 ```go
-// Initialize dependencies
-bank := repository.NewBank()
-accessCodeService := services.NewAccessCodeService(bank)
-accessCodeHandler := handlers.NewAccessCodeHandler(accessCodeService)
+// Setup server with environment configuration
+cfg, err := SetupServer()
+if err != nil {
+    log.Fatalf("Failed to setup server: %v", err)
+}
 
-// Setup HTTP routes
-http.HandleFunc("/access-code/edit", accessCodeHandler.AccessCodeEditHandler)
+// Start the server
+log.Printf("Server listening on http://%s", cfg.GetServerAddress())
+http.ListenAndServe(":"+cfg.Port, nil)
+```
+
+Or simply run:
+```bash
+go run file-to-test.go
 ```
 
 ## Files Created
 
 - `go.mod` - Go module definition
+- `.env.example` - Example environment configuration file
 - `models/user.go` - User and Claims models
 - `models/unit.go` - Unit model
 - `models/access_code.go` - Access code models and validation
 - `constants/access_codes.go` - Access code related constants
 - `constants/context.go` - Context key constants
+- `config/config.go` - Application configuration management
+- `config/env.go` - Environment file parsing and loading
 - `repository/bank.go` - Database operations and command center client
 - `services/access_code.go` - Business logic for access code operations
 - `handlers/access_code.go` - HTTP request handlers
 - `utils/slice.go` - Utility functions
 - `context/context.go` - Context management utilities
-- `file-to-test.go` - Updated to use refactored packages (renamed main to SetupServer)
+- `file-to-test.go` - Updated to use refactored packages with environment configuration
 
 The original functionality is preserved while providing a much cleaner, more maintainable architecture.
