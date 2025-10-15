@@ -178,14 +178,14 @@ func AccessCodeEditHandler(w http.ResponseWriter, r *http.Request) {
 			}
 
 			// Updates access code table - sets status to "remove" for old GACs
-			err = bank.UpdateAccessCodes(utils.ConvertToStringSlice(updateRemoveGacs), claims.CurrentSite)
+			err = bank.UpdateAccessCodes(updateRemoveGacs, claims.CurrentSite)
 			if err != nil {
 				http.Error(w, "Internal server error updating access codes", http.StatusInternalServerError)
 				return
 			}
 
 			// Updates access code table - inserts new GACs, or updates their status to "setup"
-			err = bank.UpdateAccessCodes(utils.ConvertToStringSlice(gacs), claims.CurrentSite)
+			err = bank.UpdateAccessCodes(gacs, claims.CurrentSite)
 			if err != nil {
 				http.Error(w, "Internal server error updating access codes", http.StatusInternalServerError)
 				return
