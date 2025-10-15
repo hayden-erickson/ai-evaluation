@@ -7,6 +7,7 @@ import (
 
 	"github.com/hayden-erickson/ai-evaluation/config"
 	"github.com/hayden-erickson/ai-evaluation/handlers"
+	"github.com/hayden-erickson/ai-evaluation/middleware"
 	"github.com/hayden-erickson/ai-evaluation/repository"
 	"github.com/hayden-erickson/ai-evaluation/services"
 )
@@ -29,8 +30,21 @@ func SetupServer() (*config.Config, error) {
 	accessCodeService := services.NewAccessCodeService(bank)
 	accessCodeHandler := handlers.NewAccessCodeHandler(accessCodeService)
 
-	// Setup HTTP routes
-	http.HandleFunc("/access-code/edit", accessCodeHandler.AccessCodeEditHandler)
+	// Setup HTTP routes with middleware
+	// Method 1: Using BankHandlerFunc wrapper
+	http.HandleFunc("/access-code/edit", middleware.BankHandlerFunc(bank, accessCodeHandler.AccessCodeEditHandler))
+
+	// Method 2: Using a mux with middleware chain (alternative approach)
+	// mux := http.NewServeMux()
+	// mux.HandleFunc("/access-code/edit", accessCodeHandler.AccessCodeEditHandler)
+	//
+	// // Apply middleware chain
+	// handler := middleware.LoggingMiddleware(
+	// 	middleware.CORSMiddleware(
+	// 		middleware.BankMiddleware(bank)(mux),
+	// 	),
+	// )
+	// http.Handle("/", handler)
 
 	return cfg, nil
 }

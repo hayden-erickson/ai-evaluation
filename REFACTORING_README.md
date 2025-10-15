@@ -50,6 +50,16 @@ Contains configuration management:
 - **`config.go`**: Application configuration structure and loading logic
 - **`env.go`**: Environment file (.env) parsing and loading
 
+### 📁 `middleware/`
+Contains HTTP middleware for request processing:
+- **`context.go`**: Bank context middleware for dependency injection
+- **`logging.go`**: Request logging middleware with timing and status codes
+- **`cors.go`**: CORS middleware with configurable origins, methods, and headers
+
+### 📁 `examples/`
+Contains example implementations:
+- **`server_with_middleware.go`**: Complete server setup with full middleware chain
+
 ## Benefits of Refactoring
 
 1. **Separation of Concerns**: Each package has a single, well-defined responsibility
@@ -89,23 +99,38 @@ constants/ constants/ constants/
 
 ### Running the Server
 
-The refactored code can be initialized and used as follows:
+#### Basic Setup with Middleware
+The refactored code automatically includes bank context middleware:
 
 ```go
-// Setup server with environment configuration
+// Setup server with environment configuration and middleware
 cfg, err := SetupServer()
 if err != nil {
     log.Fatalf("Failed to setup server: %v", err)
 }
 
-// Start the server
+// Start the server (middleware is already configured)
 log.Printf("Server listening on http://%s", cfg.GetServerAddress())
 http.ListenAndServe(":"+cfg.Port, nil)
 ```
 
+#### Full Middleware Chain Example
+For a complete middleware setup with logging and CORS:
+
+```go
+// Run the example with full middleware chain
+go run examples/server_with_middleware.go
+```
+
+#### Available Middleware
+- **BankMiddleware**: Injects Bank instance into request context
+- **LoggingMiddleware**: Logs requests with method, path, status, and timing
+- **CORSMiddleware**: Handles cross-origin requests with configurable options
+
 Or simply run:
 ```bash
-go run file-to-test.go
+go run file-to-test.go          # Basic server with bank middleware
+go run examples/server_with_middleware.go  # Full middleware chain
 ```
 
 ## Files Created
@@ -119,6 +144,10 @@ go run file-to-test.go
 - `constants/context.go` - Context key constants
 - `config/config.go` - Application configuration management
 - `config/env.go` - Environment file parsing and loading
+- `middleware/context.go` - Bank context middleware for dependency injection
+- `middleware/logging.go` - Request logging middleware
+- `middleware/cors.go` - CORS middleware with configurable options
+- `examples/server_with_middleware.go` - Complete middleware chain example
 - `repository/bank.go` - Database operations and command center client
 - `services/access_code.go` - Business logic for access code operations
 - `handlers/access_code.go` - HTTP request handlers
