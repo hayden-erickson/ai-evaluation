@@ -1,0 +1,129 @@
+---
+# ServiceAccount with IRSA to allow access to AWS Secrets Manager
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: db-query-cron-sa
+  annotations:
+    # Replace with your IAM role ARN that has permissions to read the secret from AWS Secrets Manager
+    # Policy needs at minimum: secretsmanager:GetSecretValue for the specific secret ARN
+    eks.amazonaws.com/role-arn: arn:aws:iam::<ACCOUNT_ID>:role/<IRSA_ROLE_NAME>
+
+---
+# SecretProviderClass to fetch DB credentials from AWS Secrets Manager
+# Requires the Secrets Store CSI Driver and AWS provider installed on the EKS cluster
+apiVersion: secrets-store.csi.x-k8s.io/v1
+kind: SecretProviderClass
+metadata:
+  name: aws-sm-db-credentials
+spec:
+  provider: aws
+  parameters:
+    # Replace <REGION> and <SECRET_NAME> with your values.
+    # Secret should be JSON like: {"username":"...","password":"...","host":"...","port":"3306","database":"..."}
+    region: <REGION>
+    objects: |
+      - objectName: "<SECRET_NAME>"
+        objectType: "secretsmanager"
+        jmesPath:
+          - path: username
+            objectAlias: DB_USERNAME
+          - path: password
+            objectAlias: DB_PASSWORD
+          - path: host
+            objectAlias: DB_HOST
+          - path: port
+            objectAlias: DB_PORT
+          - path: database
+            objectAlias: DB_NAME
+  # Sync the mounted secret values into a Kubernetes Secret so they can be consumed as env vars
+  secretObjects:
+    - secretName: db-credentials
+      type: Opaque
+      data:
+        - objectName: DB_USERNAME
+          key: DB_USERNAME
+        - objectName: DB_PASSWORD
+          key: DB_PASSWORD
+        - objectName: DB_HOST
+          key: DB_HOST
+        - objectName: DB_PORT
+          key: DB_PORT
+        - objectName: DB_NAME
+          key: DB_NAME
+
+---
+# ConfigMap holding the SQL query to run
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: db-query-config
+data:
+  # Update this to the query you want to run
+  QUERY: |
+    SELECT * FROM your_table LIMIT 10;
+
+---
+# CronJob to execute the query using MySQL client
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: db-query-cron
+spec:
+  # Adjust schedule as needed (UTC timezone). Example: every hour at minute 0
+  schedule: "0 * * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 1
+      template:
+        spec:
+          serviceAccountName: db-query-cron-sa
+          restartPolicy: Never
+          containers:
+            - name: mysql-runner
+              image: mysql:8.0
+              imagePullPolicy: IfNotPresent
+              envFrom:
+                - secretRef:
+                    name: db-credentials
+              env:
+                - name: QUERY
+                  valueFrom:
+                    configMapKeyRef:
+                      name: db-query-config
+                      key: QUERY
+              command:
+                - /bin/sh
+                - -c
+                - |
+                  set -euo pipefail
+                  echo "Running query against ${DB_HOST}:${DB_PORT}/${DB_NAME}..."
+                  mysql \
+                    -h "${DB_HOST}" \
+                    -P "${DB_PORT}" \
+                    -u "${DB_USERNAME}" \
+                    -p"${DB_PASSWORD}" \
+                    "${DB_NAME}" \
+                    -e "${QUERY}" | sed -e 's/\t/ | /g'
+              resources:
+                requests:
+                  cpu: 50m
+                  memory: 64Mi
+                limits:
+                  cpu: 200m
+                  memory: 256Mi
+              volumeMounts:
+                # Mount is required to trigger the CSI driver for syncing secrets
+                - name: secrets-store-inline
+                  mountPath: /mnt/secrets-store
+                  readOnly: true
+          volumes:
+            - name: secrets-store-inline
+              csi:
+                driver: secrets-store.csi.k8s.io
+                readOnly: true
+                volumeAttributes:
+                  secretProviderClass: aws-sm-db-credentials
