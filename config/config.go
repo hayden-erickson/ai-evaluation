@@ -59,7 +59,7 @@ func LoadConfig() (*Config, error) {
 	}
 
 	// Parse DB port
-	dbPortStr := getEnvWithDefault("DB_PORT", "5432")
+	dbPortStr := getEnvWithDefault("DB_PORT", "3306")
 	dbPort, err := strconv.Atoi(dbPortStr)
 	if err != nil {
 		return nil, fmt.Errorf("invalid DB_PORT: %v", err)
@@ -106,4 +106,15 @@ func (c *Config) IsDevelopment() bool {
 // IsProduction returns true if running in production mode
 func (c *Config) IsProduction() bool {
 	return c.Environment == "production"
+}
+
+// GetDSN returns the MySQL Data Source Name (DSN) connection string
+func (c *Config) GetDSN() string {
+	return fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?parseTime=true&charset=utf8mb4&collation=utf8mb4_unicode_ci",
+		c.DBUser,
+		c.DBPassword,
+		c.DBHost,
+		c.DBPort,
+		c.DBName,
+	)
 }

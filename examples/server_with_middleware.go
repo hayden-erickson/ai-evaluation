@@ -26,7 +26,10 @@ func SetupServerWithFullMiddleware() (*config.Config, error) {
 	}
 
 	// Initialize dependencies
-	bank := repository.NewBank()
+	bank, err := repository.NewBank(cfg.GetDSN())
+	if err != nil {
+		return nil, fmt.Errorf("failed to initialize database: %v", err)
+	}
 	accessCodeService := services.NewAccessCodeService(bank)
 	accessCodeHandler := handlers.NewAccessCodeHandler(accessCodeService)
 

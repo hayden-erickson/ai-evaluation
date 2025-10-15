@@ -25,8 +25,16 @@ func testHandler(w http.ResponseWriter, r *http.Request) {
 
 // TestBankMiddleware demonstrates that the middleware correctly adds bank to context
 func TestBankMiddleware() {
-	// Create a bank instance
-	bank := repository.NewBank()
+	// Create a bank instance with test DSN
+	// In a real test, you'd use a test database or mock
+	testDSN := "test:test@tcp(localhost:3306)/test_db"
+	bank, err := repository.NewBank(testDSN)
+	if err != nil {
+		fmt.Printf("❌ Test failed: could not create bank instance: %v\n", err)
+		fmt.Println("Note: This test requires a MySQL database connection.")
+		fmt.Println("For testing without a database, consider using a mock or interface.")
+		return
+	}
 
 	// Create a test request
 	req := httptest.NewRequest("GET", "/test", nil)
@@ -47,9 +55,4 @@ func TestBankMiddleware() {
 
 	fmt.Printf("✅ Test passed: Bank middleware successfully added bank to context\n")
 	fmt.Printf("Response: %s\n", w.Body.String())
-}
-
-func main() {
-	fmt.Println("Testing Bank Middleware...")
-	TestBankMiddleware()
 }
