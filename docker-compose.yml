@@ -1,0 +1,51 @@
+version: '3.8'
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: habits-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: habits_db
+      MYSQL_USER: habits_user
+      MYSQL_PASSWORD: habits_password
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./migrations:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 5s
+      retries: 10
+    networks:
+      - habits-network
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: habits-api
+    environment:
+      PORT: "8080"
+      DB_HOST: mysql
+      DB_PORT: "3306"
+      DB_USER: habits_user
+      DB_PASSWORD: habits_password
+      DB_NAME: habits_db
+      JWT_SECRET: "your-super-secret-jwt-key-change-in-production"
+    ports:
+      - "8080:8080"
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - habits-network
+    restart: unless-stopped
+
+volumes:
+  mysql_data:
+
+networks:
+  habits-network:
+    driver: bridge

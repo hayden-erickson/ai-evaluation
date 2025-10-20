@@ -1,0 +1,43 @@
+# Git
+.git
+.gitignore
+
+# Documentation
+*.md
+docs/
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+
+# Examples
+examples/
+
+# Kubernetes
+k8s/
+
+# Scripts
+scripts/
+
+# Docker
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# Environment files
+.env
+.env.*
+
+# Build artifacts
+bin/
+tmp/
+temp/
+
+# Logs
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db
