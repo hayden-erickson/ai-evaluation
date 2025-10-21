@@ -42,6 +42,14 @@ func (r *logRepository) Create(log *models.Log) error {
 	}
 
 	log.ID = id
+	
+	// Retrieve the created_at timestamp
+	createdLog, err := r.GetByID(id)
+	if err != nil {
+		return err
+	}
+	log.CreatedAt = createdLog.CreatedAt
+	
 	return nil
 }
 

@@ -42,6 +42,14 @@ func (r *habitRepository) Create(habit *models.Habit) error {
 	}
 
 	habit.ID = id
+	
+	// Retrieve the created_at timestamp
+	createdHabit, err := r.GetByID(id)
+	if err != nil {
+		return err
+	}
+	habit.CreatedAt = createdHabit.CreatedAt
+	
 	return nil
 }
 
