@@ -163,4 +163,3 @@ func (s *habitService) Delete(ctx context.Context, id string, userID string) err
 
 	return nil
 }
-

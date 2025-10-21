@@ -163,4 +163,3 @@ func RespondWithErrorJSON(w http.ResponseWriter, code int, message string) {
 	w.WriteHeader(code)
 	fmt.Fprintf(w, `{"error": "%s", "message": "%s"}`, errResp.Error, errResp.Message)
 }
-

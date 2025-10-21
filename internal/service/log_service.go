@@ -194,4 +194,3 @@ func (s *logService) Delete(ctx context.Context, id string, userID string) error
 
 	return nil
 }
-

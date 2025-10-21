@@ -78,4 +78,3 @@ func runMigrations(db *sql.DB) error {
 	log.Println("INFO: All migrations completed successfully")
 	return nil
 }
-

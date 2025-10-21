@@ -210,4 +210,3 @@ func chainMiddleware(handler http.HandlerFunc, middlewares ...func(http.HandlerF
 	}
 	return handler
 }
-

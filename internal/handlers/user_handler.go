@@ -244,4 +244,3 @@ func respondWithError(w http.ResponseWriter, code int, message string) {
 	}
 	json.NewEncoder(w).Encode(errResp)
 }
-
