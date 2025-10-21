@@ -57,3 +57,5 @@ Run `go run main.go`
 Once `go run main.go` succeeds with no errors the task is complete and no further action is required.
 Please do not stop until this command succeeds. 
 
+Because the server will run indefinitely, you can kill the process after 20 seconds if no error is produced and that can be considered a success. 
+
