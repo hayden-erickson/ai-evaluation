@@ -1,0 +1,9 @@
+CREATE TABLE IF NOT EXISTS users (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  profile_image_url TEXT NOT NULL DEFAULT '',
+  name TEXT NOT NULL,
+  time_zone TEXT NOT NULL,
+  phone_number TEXT NOT NULL,
+  created_at TIMESTAMP NOT NULL
+);
+
