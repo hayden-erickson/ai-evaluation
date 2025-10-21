@@ -1,6 +1,6 @@
 # Habit Tracker API
 
-A production-ready REST API built with Go for tracking personal habits. Features JWT authentication, MySQL database, and complete AWS Kubernetes deployment setup.
+A production-ready REST API built with Go for tracking personal habits. Features JWT authentication, SQLite database for local development, and complete REST endpoints for Users, Habits, and Logs.
 
 ## Features
 
@@ -8,10 +8,8 @@ A production-ready REST API built with Go for tracking personal habits. Features
 - 🔐 **JWT Authentication** with secure token-based access control
 - 🏗️ **Clean Architecture** with separation of concerns (handlers → services → repositories)
 - 🔒 **Security Best Practices** including RBAC, input validation, secure headers, and HTTPS
-- 📊 **MySQL Database** with proper indexing and foreign key constraints
-- 🐳 **Docker Support** for local development and production builds
-- ☸️ **Kubernetes Deployment** with auto-scaling, health checks, and monitoring
-- 📈 **AWS Ready** with EKS deployment scripts and CloudWatch integration
+- 📊 **SQLite Database** with automatic migrations, proper indexing and foreign key constraints
+- 🚀 **Easy Local Development** - No external database required, automatic setup on first run
 - 📝 **Comprehensive Logging** of all errors and requests
 - ✨ **Idiomatic Go Code** using standard library (net/http, context, log)
 
@@ -223,15 +221,46 @@ Authorization: Bearer {token}
 ### Prerequisites
 
 - Go 1.21 or higher
-- Docker and Docker Compose
-- MySQL client (optional, for manual migrations)
+- SQLite3 (included with most operating systems)
 
 ### Setup and Run
 
 1. **Clone the repository**
-2. **Improved testability** - Packages can be tested in isolation
-3. **Clear dependencies** - Import structure shows relationships between components
-4. **Easier navigation** - Related code is grouped together
+   ```bash
+   git clone https://github.com/hayden-erickson/ai-evaluation.git
+   cd ai-evaluation
+   ```
+
+2. **Install dependencies**
+   ```bash
+   go mod download
+   ```
+
+3. **Run the application**
+   ```bash
+   go run main.go
+   ```
+
+The server will:
+- Create a SQLite database file `habits.db` in the current directory
+- Automatically run all migrations
+- Start listening on port 8080 (or the port specified in `PORT` environment variable)
+
+### Configuration
+
+The application can be configured using environment variables:
+
+- `PORT` - Server port (default: 8080)
+- `DB_PATH` - SQLite database file path (default: habits.db)
+- `JWT_SECRET` - Secret key for JWT token generation (default: default-secret-change-in-production)
+
+Example:
+```bash
+export PORT=3000
+export DB_PATH=my_habits.db
+export JWT_SECRET=your-secret-key-here
+go run main.go
+```
 
 ## Running the Application
 
@@ -239,4 +268,4 @@ Authorization: Bearer {token}
 go run main.go
 ```
 
-The server will start on port 8080 with the access code edit endpoint available at `/api/access-code/edit`.
+The server will start on port 8080 with full REST API endpoints for Users, Habits, and Logs.

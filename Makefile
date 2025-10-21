@@ -61,7 +61,7 @@ format: ## Format code
 	go fmt ./...
 
 # Development workflow
-dev-setup: deps docker-up ## Set up local development environment
+dev-setup: deps docker-build docker-up ## Set up local development environment
 	@echo "Waiting for MySQL to be ready..."
 	@sleep 10
 	$(MAKE) migrate

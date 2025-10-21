@@ -4,9 +4,9 @@ go 1.21
 
 require (
 	github.com/go-playground/validator/v10 v10.16.0
-	github.com/go-sql-driver/mysql v1.7.1
 	github.com/golang-jwt/jwt/v5 v5.2.0
 	github.com/google/uuid v1.5.0
+	github.com/mattn/go-sqlite3 v1.14.18
 	golang.org/x/crypto v0.28.0
 )
 
