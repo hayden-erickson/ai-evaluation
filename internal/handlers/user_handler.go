@@ -3,8 +3,8 @@ package handlers
 import (
 	"encoding/json"
 	"net/http"
-	"new-api/internal/models"
-	"new-api/internal/service"
+	"github.com/hayden-erickson/ai-evaluation/internal/models"
+	"github.com/hayden-erickson/ai-evaluation/internal/service"
 	"strconv"
 )
 

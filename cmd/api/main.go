@@ -3,11 +3,12 @@ package main
 import (
 	"log"
 	"net/http"
-	"new-api/internal/auth"
-	"new-api/internal/database"
-	"new-api/internal/handlers"
-	"new-api/internal/repository"
-	"new-api/internal/service"
+
+	"github.com/hayden-erickson/ai-evaluation/internal/auth"
+	"github.com/hayden-erickson/ai-evaluation/internal/database"
+	"github.com/hayden-erickson/ai-evaluation/internal/handlers"
+	"github.com/hayden-erickson/ai-evaluation/internal/repository"
+	"github.com/hayden-erickson/ai-evaluation/internal/service"
 )
 
 func main() {

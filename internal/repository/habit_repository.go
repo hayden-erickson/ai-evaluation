@@ -2,7 +2,7 @@ package repository
 
 import (
 	"database/sql"
-	"new-api/internal/models"
+	"github.com/hayden-erickson/ai-evaluation/internal/models"
 )
 
 // HabitRepository defines the interface for habit persistence

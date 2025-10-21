@@ -1,8 +1,8 @@
 package service
 
 import (
-	"new-api/internal/models"
-	"new-api/internal/repository"
+	"github.com/hayden-erickson/ai-evaluation/internal/models"
+	"github.com/hayden-erickson/ai-evaluation/internal/repository"
 )
 
 // UserService defines the interface for user business logic

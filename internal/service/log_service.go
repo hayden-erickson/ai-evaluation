@@ -2,8 +2,8 @@ package service
 
 import (
 	"errors"
-	"new-api/internal/models"
-	"new-api/internal/repository"
+	"github.com/hayden-erickson/ai-evaluation/internal/models"
+	"github.com/hayden-erickson/ai-evaluation/internal/repository"
 )
 
 // LogService defines the interface for log business logic
