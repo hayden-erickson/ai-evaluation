@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
-	"github.com/hayden-erickson/ai-evaluation/models"
 )
 
 type contextKey string
