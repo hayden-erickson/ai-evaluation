@@ -52,12 +52,18 @@ func (s *logService) Create(ctx context.Context, habitID string, userID string, 
 		return nil, fmt.Errorf("unauthorized: habit does not belong to user")
 	}
 
+	// Validate duration: if habit has duration, log must have it too
+	if habit.DurationSeconds != nil && req.DurationSeconds == nil {
+		return nil, fmt.Errorf("duration is required for this habit")
+	}
+
 	// Create log model
 	log := &models.Log{
-		ID:        uuid.New().String(),
-		HabitID:   habitID,
-		Notes:     req.Notes,
-		CreatedAt: time.Now().UTC(),
+		ID:              uuid.New().String(),
+		HabitID:         habitID,
+		Notes:           req.Notes,
+		DurationSeconds: req.DurationSeconds,
+		CreatedAt:       time.Now().UTC(),
 	}
 
 	// Save to repository
@@ -152,6 +158,14 @@ func (s *logService) Update(ctx context.Context, id string, userID string, req *
 	// Update fields if provided
 	if req.Notes != nil {
 		log.Notes = *req.Notes
+	}
+	if req.DurationSeconds != nil {
+		log.DurationSeconds = req.DurationSeconds
+	}
+
+	// Validate duration: if habit has duration, log must have it too after update
+	if habit.DurationSeconds != nil && log.DurationSeconds == nil {
+		return nil, fmt.Errorf("duration is required for this habit")
 	}
 
 	// Save updates

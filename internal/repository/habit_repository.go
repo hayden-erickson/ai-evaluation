@@ -30,8 +30,8 @@ func NewHabitRepository(db *sql.DB) HabitRepository {
 // Create inserts a new habit into the database
 func (r *habitRepository) Create(ctx context.Context, habit *models.Habit) error {
 	query := `
-		INSERT INTO habits (id, user_id, name, description, created_at)
-		VALUES (?, ?, ?, ?, ?)
+		INSERT INTO habits (id, user_id, name, description, duration_seconds, created_at)
+		VALUES (?, ?, ?, ?, ?, ?)
 	`
 
 	_, err := r.db.ExecContext(ctx, query,
@@ -39,6 +39,7 @@ func (r *habitRepository) Create(ctx context.Context, habit *models.Habit) error
 		habit.UserID,
 		habit.Name,
 		habit.Description,
+		habit.DurationSeconds,
 		habit.CreatedAt,
 	)
 
@@ -52,7 +53,7 @@ func (r *habitRepository) Create(ctx context.Context, habit *models.Habit) error
 // GetByID retrieves a habit by its ID
 func (r *habitRepository) GetByID(ctx context.Context, id string) (*models.Habit, error) {
 	query := `
-		SELECT id, user_id, name, description, created_at
+		SELECT id, user_id, name, description, duration_seconds, created_at
 		FROM habits
 		WHERE id = ?
 	`
@@ -63,6 +64,7 @@ func (r *habitRepository) GetByID(ctx context.Context, id string) (*models.Habit
 		&habit.UserID,
 		&habit.Name,
 		&habit.Description,
+		&habit.DurationSeconds,
 		&habit.CreatedAt,
 	)
 
@@ -79,7 +81,7 @@ func (r *habitRepository) GetByID(ctx context.Context, id string) (*models.Habit
 // GetByUserID retrieves all habits for a specific user
 func (r *habitRepository) GetByUserID(ctx context.Context, userID string) ([]*models.Habit, error) {
 	query := `
-		SELECT id, user_id, name, description, created_at
+		SELECT id, user_id, name, description, duration_seconds, created_at
 		FROM habits
 		WHERE user_id = ?
 		ORDER BY created_at DESC
@@ -99,6 +101,7 @@ func (r *habitRepository) GetByUserID(ctx context.Context, userID string) ([]*mo
 			&habit.UserID,
 			&habit.Name,
 			&habit.Description,
+			&habit.DurationSeconds,
 			&habit.CreatedAt,
 		)
 		if err != nil {
@@ -118,13 +121,14 @@ func (r *habitRepository) GetByUserID(ctx context.Context, userID string) ([]*mo
 func (r *habitRepository) Update(ctx context.Context, habit *models.Habit) error {
 	query := `
 		UPDATE habits
-		SET name = ?, description = ?
+		SET name = ?, description = ?, duration_seconds = ?
 		WHERE id = ?
 	`
 
 	result, err := r.db.ExecContext(ctx, query,
 		habit.Name,
 		habit.Description,
+		habit.DurationSeconds,
 		habit.ID,
 	)
 
@@ -164,4 +168,3 @@ func (r *habitRepository) Delete(ctx context.Context, id string) error {
 
 	return nil
 }
-

@@ -55,6 +55,7 @@ func runMigrations(db *sql.DB) error {
 		"migrations/001_create_users_table.sql",
 		"migrations/002_create_habits_table.sql",
 		"migrations/003_create_logs_table.sql",
+		"migrations/004_add_duration_to_habits_and_logs.sql",
 	}
 
 	// Execute each migration

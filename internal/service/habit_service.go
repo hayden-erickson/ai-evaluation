@@ -41,11 +41,12 @@ func (s *habitService) Create(ctx context.Context, userID string, req *models.Cr
 
 	// Create habit model
 	habit := &models.Habit{
-		ID:          uuid.New().String(),
-		UserID:      userID,
-		Name:        req.Name,
-		Description: req.Description,
-		CreatedAt:   time.Now().UTC(),
+		ID:              uuid.New().String(),
+		UserID:          userID,
+		Name:            req.Name,
+		Description:     req.Description,
+		DurationSeconds: req.DurationSeconds,
+		CreatedAt:       time.Now().UTC(),
 	}
 
 	// Save to repository
@@ -125,6 +126,9 @@ func (s *habitService) Update(ctx context.Context, id string, userID string, req
 	}
 	if req.Description != nil {
 		habit.Description = *req.Description
+	}
+	if req.DurationSeconds != nil {
+		habit.DurationSeconds = req.DurationSeconds
 	}
 
 	// Save updates

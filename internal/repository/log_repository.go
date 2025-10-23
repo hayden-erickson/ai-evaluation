@@ -30,14 +30,15 @@ func NewLogRepository(db *sql.DB) LogRepository {
 // Create inserts a new log into the database
 func (r *logRepository) Create(ctx context.Context, log *models.Log) error {
 	query := `
-		INSERT INTO logs (id, habit_id, notes, created_at)
-		VALUES (?, ?, ?, ?)
+		INSERT INTO logs (id, habit_id, notes, duration_seconds, created_at)
+		VALUES (?, ?, ?, ?, ?)
 	`
 
 	_, err := r.db.ExecContext(ctx, query,
 		log.ID,
 		log.HabitID,
 		log.Notes,
+		log.DurationSeconds,
 		log.CreatedAt,
 	)
 
@@ -51,7 +52,7 @@ func (r *logRepository) Create(ctx context.Context, log *models.Log) error {
 // GetByID retrieves a log by its ID
 func (r *logRepository) GetByID(ctx context.Context, id string) (*models.Log, error) {
 	query := `
-		SELECT id, habit_id, notes, created_at
+		SELECT id, habit_id, notes, duration_seconds, created_at
 		FROM logs
 		WHERE id = ?
 	`
@@ -61,6 +62,7 @@ func (r *logRepository) GetByID(ctx context.Context, id string) (*models.Log, er
 		&log.ID,
 		&log.HabitID,
 		&log.Notes,
+		&log.DurationSeconds,
 		&log.CreatedAt,
 	)
 
@@ -77,7 +79,7 @@ func (r *logRepository) GetByID(ctx context.Context, id string) (*models.Log, er
 // GetByHabitID retrieves all logs for a specific habit
 func (r *logRepository) GetByHabitID(ctx context.Context, habitID string) ([]*models.Log, error) {
 	query := `
-		SELECT id, habit_id, notes, created_at
+		SELECT id, habit_id, notes, duration_seconds, created_at
 		FROM logs
 		WHERE habit_id = ?
 		ORDER BY created_at DESC
@@ -96,6 +98,7 @@ func (r *logRepository) GetByHabitID(ctx context.Context, habitID string) ([]*mo
 			&log.ID,
 			&log.HabitID,
 			&log.Notes,
+			&log.DurationSeconds,
 			&log.CreatedAt,
 		)
 		if err != nil {
@@ -115,12 +118,13 @@ func (r *logRepository) GetByHabitID(ctx context.Context, habitID string) ([]*mo
 func (r *logRepository) Update(ctx context.Context, log *models.Log) error {
 	query := `
 		UPDATE logs
-		SET notes = ?
+		SET notes = ?, duration_seconds = ?
 		WHERE id = ?
 	`
 
 	result, err := r.db.ExecContext(ctx, query,
 		log.Notes,
+		log.DurationSeconds,
 		log.ID,
 	)
 
@@ -160,4 +164,3 @@ func (r *logRepository) Delete(ctx context.Context, id string) error {
 
 	return nil
 }
-
