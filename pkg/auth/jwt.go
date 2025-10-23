@@ -54,10 +54,24 @@ func GenerateJWT(userID string) (string, error) {
 func ValidateJWT(token string) (string, error) {
 	// Simple validation - extract user ID from token
 	// In production, properly verify the signature
-	var userID string
-	var timestamp int64
+	parts := []byte(token)
+	colonIndex := -1
+	for i := len(parts) - 1; i >= 0; i-- {
+		if parts[i] == ':' {
+			colonIndex = i
+			break
+		}
+	}
 	
-	_, err := fmt.Sscanf(token, "%s:%d", &userID, &timestamp)
+	if colonIndex == -1 {
+		return "", fmt.Errorf("invalid token format")
+	}
+	
+	userID := string(parts[:colonIndex])
+	timestampStr := string(parts[colonIndex+1:])
+	
+	var timestamp int64
+	_, err := fmt.Sscanf(timestampStr, "%d", &timestamp)
 	if err != nil {
 		return "", fmt.Errorf("invalid token format")
 	}
