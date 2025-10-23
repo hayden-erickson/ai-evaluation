@@ -25,50 +25,33 @@ type TestConfig struct {
 
 // Test statistics
 type TestStats struct {
-	mu                  sync.Mutex
-	TotalRequests       int64
-	SuccessfulRequests  int64
-	FailedRequests      int64
-	TotalLatency        time.Duration
-	MinLatency          time.Duration
-	MaxLatency          time.Duration
-	RegisterLatencies   []time.Duration
-	LoginLatencies      []time.Duration
+	mu                   sync.Mutex
+	TotalRequests        int64
+	SuccessfulRequests   int64
+	FailedRequests       int64
+	TotalLatency         time.Duration
+	MinLatency           time.Duration
+	MaxLatency           time.Duration
+	RegisterLatencies    []time.Duration
 	CreateHabitLatencies []time.Duration
-	CreateLogLatencies  []time.Duration
-	GetHabitsLatencies  []time.Duration
-	GetLogsLatencies    []time.Duration
+	CreateLogLatencies   []time.Duration
+	GetHabitsLatencies   []time.Duration
+	GetLogsLatencies     []time.Duration
 }
 
 // User credentials for testing
 type TestUser struct {
 	PhoneNumber string
-	Password    string
 	Token       string
 	UserID      int64
 	Habits      []TestHabit
+	mu          sync.Mutex
 }
 
 // Habit for testing
 type TestHabit struct {
 	ID   int64
 	Name string
-}
-
-// Response structures
-type LoginResponse struct {
-	Token string          `json:"token"`
-	User  json.RawMessage `json:"user"`
-}
-
-type UserResponse struct {
-	ID int64 `json:"id"`
-}
-
-type HabitResponse struct {
-	ID     int64  `json:"id"`
-	Name   string `json:"name"`
-	UserID int64  `json:"user_id"`
 }
 
 func main() {
@@ -111,18 +94,13 @@ func main() {
 	}
 	fmt.Println("✓ Health check passed")
 
-	// Phase 1: User Registration
+	// Phase 1: User Registration (includes token)
 	fmt.Println("\nPhase 1: User Registration")
 	users := registerUsers(config, stats)
-	fmt.Printf("✓ Registered %d users\n", len(users))
+	fmt.Printf("✓ Registered %d users (with auth tokens)\n", len(users))
 
-	// Phase 2: User Login
-	fmt.Println("\nPhase 2: User Login")
-	loginUsers(config, stats, users)
-	fmt.Printf("✓ Logged in %d users\n", len(users))
-
-	// Phase 3: Create Habits
-	fmt.Println("\nPhase 3: Create Habits")
+	// Phase 2: Create Habits
+	fmt.Println("\nPhase 2: Create Habits")
 	createHabits(config, stats, users)
 	totalHabits := 0
 	for _, user := range users {
@@ -130,18 +108,18 @@ func main() {
 	}
 	fmt.Printf("✓ Created %d habits\n", totalHabits)
 
-	// Phase 4: Create Logs
-	fmt.Println("\nPhase 4: Create Logs")
+	// Phase 3: Create Logs
+	fmt.Println("\nPhase 3: Create Logs")
 	createLogs(config, stats, users)
 	fmt.Printf("✓ Created logs for all habits\n")
 
-	// Phase 5: Read Operations (List Habits and Logs)
-	fmt.Println("\nPhase 5: Read Operations")
+	// Phase 4: Read Operations (List Habits and Logs)
+	fmt.Println("\nPhase 4: Read Operations")
 	performReadOperations(config, stats, users)
 	fmt.Printf("✓ Performed read operations\n")
 
-	// Phase 6: Load Testing
-	fmt.Println("\nPhase 6: Load Testing")
+	// Phase 5: Load Testing
+	fmt.Println("\nPhase 5: Load Testing")
 	performLoadTest(config, stats, users)
 
 	// Print results
@@ -155,7 +133,7 @@ func main() {
 
 // testHealthEndpoint checks if the API is responsive
 func testHealthEndpoint(baseURL string) error {
-	resp, err := http.Get(baseURL + "/health")
+	resp, err := http.Get(baseURL + "/healthz")
 	if err != nil {
 		return err
 	}
@@ -183,7 +161,6 @@ func registerUsers(config TestConfig, stats *TestStats) []*TestUser {
 			for userNum := range workerChan {
 				user := &TestUser{
 					PhoneNumber: fmt.Sprintf("+1555000%04d", userNum),
-					Password:    "TestPassword123!",
 				}
 
 				start := time.Now()
@@ -222,14 +199,14 @@ func registerUsers(config TestConfig, stats *TestStats) []*TestUser {
 // registerUser registers a single user
 func registerUser(baseURL string, user *TestUser) error {
 	payload := map[string]interface{}{
-		"phone_number": user.PhoneNumber,
-		"password":     user.Password,
-		"name":         "Test User " + user.PhoneNumber,
-		"time_zone":    "America/New_York",
+		"phoneNumber":     user.PhoneNumber,
+		"name":            "Test User " + user.PhoneNumber,
+		"timeZone":        "America/New_York",
+		"profileImageUrl": "",
 	}
 
 	jsonData, _ := json.Marshal(payload)
-	resp, err := http.Post(baseURL+"/api/register", "application/json", bytes.NewBuffer(jsonData))
+	resp, err := http.Post(baseURL+"/register", "application/json", bytes.NewBuffer(jsonData))
 	if err != nil {
 		return err
 	}
@@ -240,61 +217,16 @@ func registerUser(baseURL string, user *TestUser) error {
 		return fmt.Errorf("unexpected status code: %d, body: %s", resp.StatusCode, string(body))
 	}
 
-	var userResp UserResponse
-	if err := json.NewDecoder(resp.Body).Decode(&userResp); err != nil {
+	var registerResp struct {
+		UserID int64  `json:"userId"`
+		Token  string `json:"token"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&registerResp); err != nil {
 		return err
 	}
 
-	user.UserID = userResp.ID
-	return nil
-}
-
-// loginUsers logs in all test users
-func loginUsers(config TestConfig, stats *TestStats, users []*TestUser) {
-	var wg sync.WaitGroup
-
-	for _, user := range users {
-		wg.Add(1)
-		go func(u *TestUser) {
-			defer wg.Done()
-			start := time.Now()
-			if err := loginUser(config.BaseURL, u); err != nil {
-				log.Printf("Failed to login user %s: %v", u.PhoneNumber, err)
-				recordRequest(stats, start, false, &stats.LoginLatencies)
-				return
-			}
-			recordRequest(stats, start, true, &stats.LoginLatencies)
-		}(user)
-	}
-
-	wg.Wait()
-}
-
-// loginUser logs in a single user
-func loginUser(baseURL string, user *TestUser) error {
-	payload := map[string]string{
-		"phone_number": user.PhoneNumber,
-		"password":     user.Password,
-	}
-
-	jsonData, _ := json.Marshal(payload)
-	resp, err := http.Post(baseURL+"/api/login", "application/json", bytes.NewBuffer(jsonData))
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(resp.Body)
-		return fmt.Errorf("unexpected status code: %d, body: %s", resp.StatusCode, string(body))
-	}
-
-	var loginResp LoginResponse
-	if err := json.NewDecoder(resp.Body).Decode(&loginResp); err != nil {
-		return err
-	}
-
-	user.Token = loginResp.Token
+	user.UserID = registerResp.UserID
+	user.Token = registerResp.Token
 	return nil
 }
 
@@ -315,7 +247,9 @@ func createHabits(config TestConfig, stats *TestStats, users []*TestUser) {
 					return
 				}
 				recordRequest(stats, start, true, &stats.CreateHabitLatencies)
+				u.mu.Lock()
 				u.Habits = append(u.Habits, habit)
+				u.mu.Unlock()
 			}(user, i)
 		}
 	}
@@ -325,13 +259,14 @@ func createHabits(config TestConfig, stats *TestStats, users []*TestUser) {
 
 // createHabit creates a single habit
 func createHabit(baseURL string, user *TestUser, habitNum int) (TestHabit, error) {
+	habitName := fmt.Sprintf("Habit %d for %s", habitNum, user.PhoneNumber)
 	payload := map[string]string{
-		"name":        fmt.Sprintf("Habit %d for %s", habitNum, user.PhoneNumber),
+		"name":        habitName,
 		"description": fmt.Sprintf("Test habit description %d", habitNum),
 	}
 
 	jsonData, _ := json.Marshal(payload)
-	req, _ := http.NewRequest("POST", baseURL+"/api/habits", bytes.NewBuffer(jsonData))
+	req, _ := http.NewRequest("POST", baseURL+"/habits", bytes.NewBuffer(jsonData))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+user.Token)
 
@@ -346,12 +281,14 @@ func createHabit(baseURL string, user *TestUser, habitNum int) (TestHabit, error
 		return TestHabit{}, fmt.Errorf("unexpected status code: %d, body: %s", resp.StatusCode, string(body))
 	}
 
-	var habitResp HabitResponse
+	var habitResp struct {
+		ID int64 `json:"id"`
+	}
 	if err := json.NewDecoder(resp.Body).Decode(&habitResp); err != nil {
 		return TestHabit{}, err
 	}
 
-	return TestHabit{ID: habitResp.ID, Name: habitResp.Name}, nil
+	return TestHabit{ID: habitResp.ID, Name: habitName}, nil
 }
 
 // createLogs creates logs for all habits
@@ -359,14 +296,25 @@ func createLogs(config TestConfig, stats *TestStats, users []*TestUser) {
 	var wg sync.WaitGroup
 
 	for _, user := range users {
-		for _, habit := range user.Habits {
+		// Safely read habits
+		user.mu.Lock()
+		habits := make([]TestHabit, len(user.Habits))
+		copy(habits, user.Habits)
+		user.mu.Unlock()
+
+		if len(habits) == 0 {
+			log.Printf("Warning: User %s has no habits", user.PhoneNumber)
+			continue
+		}
+
+		for _, habit := range habits {
 			for i := 0; i < config.NumLogsPerHabit; i++ {
 				wg.Add(1)
 				go func(u *TestUser, h TestHabit, logNum int) {
 					defer wg.Done()
 					start := time.Now()
 					if err := createLog(config.BaseURL, u, h, logNum); err != nil {
-						log.Printf("Failed to create log: %v", err)
+						log.Printf("Failed to create log for habit %d: %v", h.ID, err)
 						recordRequest(stats, start, false, &stats.CreateLogLatencies)
 						return
 					}
@@ -382,24 +330,31 @@ func createLogs(config TestConfig, stats *TestStats, users []*TestUser) {
 // createLog creates a single log entry
 func createLog(baseURL string, user *TestUser, habit TestHabit, logNum int) error {
 	payload := map[string]interface{}{
-		"habit_id": habit.ID,
-		"notes":    fmt.Sprintf("Log entry %d for habit %s", logNum, habit.Name),
+		"habitId": habit.ID,
+		"notes":   fmt.Sprintf("Log entry %d for habit %s", logNum, habit.Name),
 	}
 
-	jsonData, _ := json.Marshal(payload)
-	req, _ := http.NewRequest("POST", baseURL+"/api/logs", bytes.NewBuffer(jsonData))
+	jsonData, err := json.Marshal(payload)
+	if err != nil {
+		return fmt.Errorf("failed to marshal payload: %w", err)
+	}
+
+	req, err := http.NewRequest("POST", baseURL+"/logs", bytes.NewBuffer(jsonData))
+	if err != nil {
+		return fmt.Errorf("failed to create request: %w", err)
+	}
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+user.Token)
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to send request: %w", err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusCreated {
 		body, _ := io.ReadAll(resp.Body)
-		return fmt.Errorf("unexpected status code: %d, body: %s", resp.StatusCode, string(body))
+		return fmt.Errorf("unexpected status code: %d, body: %s, payload sent: %s", resp.StatusCode, string(body), string(jsonData))
 	}
 
 	return nil
@@ -426,7 +381,13 @@ func performReadOperations(config TestConfig, stats *TestStats, users []*TestUse
 
 	// Get logs for each habit
 	for _, user := range users {
-		for _, habit := range user.Habits {
+		// Safely read habits
+		user.mu.Lock()
+		habits := make([]TestHabit, len(user.Habits))
+		copy(habits, user.Habits)
+		user.mu.Unlock()
+
+		for _, habit := range habits {
 			wg.Add(1)
 			go func(u *TestUser, h TestHabit) {
 				defer wg.Done()
@@ -446,7 +407,7 @@ func performReadOperations(config TestConfig, stats *TestStats, users []*TestUse
 
 // getHabits retrieves all habits for a user
 func getHabits(baseURL string, user *TestUser) error {
-	req, _ := http.NewRequest("GET", baseURL+"/api/habits", nil)
+	req, _ := http.NewRequest("GET", baseURL+"/habits", nil)
 	req.Header.Set("Authorization", "Bearer "+user.Token)
 
 	resp, err := http.DefaultClient.Do(req)
@@ -465,7 +426,7 @@ func getHabits(baseURL string, user *TestUser) error {
 
 // getLogs retrieves all logs for a habit
 func getLogs(baseURL string, user *TestUser, habit TestHabit) error {
-	url := fmt.Sprintf("%s/api/logs?habit_id=%d", baseURL, habit.ID)
+	url := fmt.Sprintf("%s/logs?habitId=%d", baseURL, habit.ID)
 	req, _ := http.NewRequest("GET", url, nil)
 	req.Header.Set("Authorization", "Bearer "+user.Token)
 
@@ -500,14 +461,27 @@ func performLoadTest(config TestConfig, stats *TestStats, users []*TestUser) {
 		go func(workerID int) {
 			defer wg.Done()
 			userIndex := workerID % len(users)
-			
+
 			for {
 				select {
 				case <-stopChan:
 					return
 				default:
 					user := users[userIndex]
-					if len(user.Habits) == 0 {
+
+					// Safely check and read habits
+					user.mu.Lock()
+					numHabits := len(user.Habits)
+					var selectedHabit TestHabit
+					if numHabits > 0 {
+						habitIndex := time.Now().UnixNano() % int64(numHabits)
+						selectedHabit = user.Habits[habitIndex]
+					}
+					user.mu.Unlock()
+
+					if numHabits == 0 {
+						// Cycle through users and continue
+						userIndex = (userIndex + 1) % len(users)
 						continue
 					}
 
@@ -520,9 +494,8 @@ func performLoadTest(config TestConfig, stats *TestStats, users []*TestUser) {
 						recordRequest(stats, start, err == nil, nil)
 					case 1:
 						// Get logs for a random habit
-						habitIndex := time.Now().UnixNano() % int64(len(user.Habits))
 						start := time.Now()
-						err := getLogs(config.BaseURL, user, user.Habits[habitIndex])
+						err := getLogs(config.BaseURL, user, selectedHabit)
 						recordRequest(stats, start, err == nil, nil)
 					}
 
@@ -592,7 +565,6 @@ func printResults(stats *TestStats) {
 	}
 
 	printOperationStats("User Registration", stats.RegisterLatencies)
-	printOperationStats("User Login", stats.LoginLatencies)
 	printOperationStats("Create Habit", stats.CreateHabitLatencies)
 	printOperationStats("Create Log", stats.CreateLogLatencies)
 	printOperationStats("Get Habits", stats.GetHabitsLatencies)
