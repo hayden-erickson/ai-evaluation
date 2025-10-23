@@ -31,8 +31,8 @@ func NewHabitRepository(db *sql.DB) HabitRepository {
 func (r *habitRepository) Create(userID int64, habit *models.CreateHabitRequest) (*models.Habit, error) {
 	// Insert the habit
 	result, err := r.db.Exec(
-		"INSERT INTO habits (user_id, name, description) VALUES (?, ?, ?)",
-		userID, habit.Name, habit.Description,
+		"INSERT INTO habits (user_id, name, description, duration_seconds) VALUES (?, ?, ?, ?)",
+		userID, habit.Name, habit.Description, habit.DurationSeconds,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create habit: %w", err)
@@ -52,18 +52,25 @@ func (r *habitRepository) Create(userID int64, habit *models.CreateHabitRequest)
 func (r *habitRepository) GetByID(id int64) (*models.Habit, error) {
 	habit := &models.Habit{}
 	var createdAt string
+	var durationSeconds sql.NullInt64
 
 	// Query the habit
 	err := r.db.QueryRow(
-		"SELECT id, user_id, name, description, created_at FROM habits WHERE id = ?",
+		"SELECT id, user_id, name, description, duration_seconds, created_at FROM habits WHERE id = ?",
 		id,
-	).Scan(&habit.ID, &habit.UserID, &habit.Name, &habit.Description, &createdAt)
+	).Scan(&habit.ID, &habit.UserID, &habit.Name, &habit.Description, &durationSeconds, &createdAt)
 
 	if err == sql.ErrNoRows {
 		return nil, fmt.Errorf("habit not found")
 	}
 	if err != nil {
 		return nil, fmt.Errorf("failed to get habit: %w", err)
+	}
+
+	// Set duration_seconds if not null
+	if durationSeconds.Valid {
+		duration := int(durationSeconds.Int64)
+		habit.DurationSeconds = &duration
 	}
 
 	// Parse created_at timestamp
@@ -83,7 +90,7 @@ func (r *habitRepository) GetByID(id int64) (*models.Habit, error) {
 func (r *habitRepository) GetByUserID(userID int64) ([]*models.Habit, error) {
 	// Query all habits for the user
 	rows, err := r.db.Query(
-		"SELECT id, user_id, name, description, created_at FROM habits WHERE user_id = ? ORDER BY created_at DESC",
+		"SELECT id, user_id, name, description, duration_seconds, created_at FROM habits WHERE user_id = ? ORDER BY created_at DESC",
 		userID,
 	)
 	if err != nil {
@@ -95,10 +102,17 @@ func (r *habitRepository) GetByUserID(userID int64) ([]*models.Habit, error) {
 	for rows.Next() {
 		habit := &models.Habit{}
 		var createdAt string
+		var durationSeconds sql.NullInt64
 
-		err := rows.Scan(&habit.ID, &habit.UserID, &habit.Name, &habit.Description, &createdAt)
+		err := rows.Scan(&habit.ID, &habit.UserID, &habit.Name, &habit.Description, &durationSeconds, &createdAt)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan habit: %w", err)
+		}
+
+		// Set duration_seconds if not null
+		if durationSeconds.Valid {
+			duration := int(durationSeconds.Int64)
+			habit.DurationSeconds = &duration
 		}
 
 		// Parse created_at timestamp
@@ -135,6 +149,10 @@ func (r *habitRepository) Update(id int64, req *models.UpdateHabitRequest) (*mod
 	if req.Description != nil {
 		updates = append(updates, "description = ?")
 		args = append(args, *req.Description)
+	}
+	if req.DurationSeconds != nil {
+		updates = append(updates, "duration_seconds = ?")
+		args = append(args, *req.DurationSeconds)
 	}
 
 	// No fields to update
