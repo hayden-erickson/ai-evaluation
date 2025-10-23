@@ -46,6 +46,11 @@ func (s *logService) CreateLog(habitID int64, userID int64, req *models.CreateLo
 		return nil, fmt.Errorf("unauthorized access to habit")
 	}
 
+	// Validate duration requirement: if habit has duration, log must have duration
+	if habit.DurationSeconds != nil && req.DurationSeconds == nil {
+		return nil, fmt.Errorf("validation failed: duration_seconds is required for this habit")
+	}
+
 	// Create the log
 	log, err := s.logRepo.Create(habitID, req)
 	if err != nil {
@@ -114,6 +119,20 @@ func (s *logService) UpdateLog(id int64, userID int64, req *models.UpdateLogRequ
 	}
 	if habit.UserID != userID {
 		return nil, fmt.Errorf("unauthorized access to log")
+	}
+
+	// Validate duration requirement: if habit has duration, log must maintain duration
+	// If updating duration_seconds to nil and habit requires it, reject
+	if habit.DurationSeconds != nil && req.DurationSeconds != nil && *req.DurationSeconds == 0 {
+		// Allow setting to 0 as that's different from nil
+	}
+	// Check the final state after update
+	finalDuration := log.DurationSeconds
+	if req.DurationSeconds != nil {
+		finalDuration = req.DurationSeconds
+	}
+	if habit.DurationSeconds != nil && finalDuration == nil {
+		return nil, fmt.Errorf("validation failed: duration_seconds is required for this habit")
 	}
 
 	// Update the log
