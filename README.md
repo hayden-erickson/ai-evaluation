@@ -8,6 +8,7 @@ A REST API built with Go for tracking user habits with SQLite database, JWT auth
 - **User Management** - Full CRUD operations for user accounts
 - **Habit Tracking** - Create, read, update, and delete habits
 - **Log Entries** - Track habit completion with timestamped logs and notes
+- **Durations** - Optional duration (seconds) on habits and logs; if a habit has a duration, its logs must include one
 - **Role-Based Access Control** - Users can only access their own data
 - **Input Validation** - Comprehensive request validation
 - **Error Handling** - All errors logged and returned with appropriate HTTP status codes
@@ -336,6 +337,7 @@ CREATE TABLE habits (
     user_id INTEGER NOT NULL,
     name TEXT NOT NULL,
     description TEXT,
+  duration_seconds INTEGER,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
@@ -347,6 +349,7 @@ CREATE TABLE logs (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     habit_id INTEGER NOT NULL,
     notes TEXT,
+  duration_seconds INTEGER,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (habit_id) REFERENCES habits(id) ON DELETE CASCADE
 );

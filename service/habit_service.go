@@ -35,9 +35,10 @@ func (s *habitService) Create(userID int64, req *models.CreateHabitRequest) (*mo
 
 	// Create habit
 	habit := &models.Habit{
-		UserID:      userID,
-		Name:        req.Name,
-		Description: req.Description,
+		UserID:          userID,
+		Name:            req.Name,
+		Description:     req.Description,
+		DurationSeconds: req.DurationSeconds,
 	}
 
 	if err := s.repo.Create(habit); err != nil {
@@ -85,6 +86,12 @@ func (s *habitService) Update(id, userID int64, req *models.UpdateHabitRequest) 
 	if req.Description != nil {
 		habit.Description = *req.Description
 	}
+	if req.DurationSeconds != nil {
+		if *req.DurationSeconds <= 0 {
+			return nil, fmt.Errorf("duration_seconds must be positive")
+		}
+		habit.DurationSeconds = req.DurationSeconds
+	}
 
 	if err := s.repo.Update(habit); err != nil {
 		return nil, err
@@ -113,6 +120,9 @@ func (s *habitService) Delete(id, userID int64) error {
 func (s *habitService) validateCreateRequest(req *models.CreateHabitRequest) error {
 	if strings.TrimSpace(req.Name) == "" {
 		return fmt.Errorf("name is required")
+	}
+	if req.DurationSeconds != nil && *req.DurationSeconds <= 0 {
+		return fmt.Errorf("duration_seconds must be positive")
 	}
 	return nil
 }

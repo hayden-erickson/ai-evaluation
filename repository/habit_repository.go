@@ -28,10 +28,16 @@ func NewHabitRepository(db *sql.DB) HabitRepository {
 // Create inserts a new habit into the database
 func (r *habitRepository) Create(habit *models.Habit) error {
 	query := `
-		INSERT INTO habits (user_id, name, description)
-		VALUES (?, ?, ?)
+		INSERT INTO habits (user_id, name, description, duration_seconds)
+		VALUES (?, ?, ?, ?)
 	`
-	result, err := r.db.Exec(query, habit.UserID, habit.Name, habit.Description)
+	var duration interface{}
+	if habit.DurationSeconds != nil {
+		duration = *habit.DurationSeconds
+	} else {
+		duration = nil
+	}
+	result, err := r.db.Exec(query, habit.UserID, habit.Name, habit.Description, duration)
 	if err != nil {
 		return fmt.Errorf("failed to create habit: %w", err)
 	}
@@ -42,30 +48,32 @@ func (r *habitRepository) Create(habit *models.Habit) error {
 	}
 
 	habit.ID = id
-	
+
 	// Retrieve the created_at timestamp
 	createdHabit, err := r.GetByID(id)
 	if err != nil {
 		return err
 	}
 	habit.CreatedAt = createdHabit.CreatedAt
-	
+
 	return nil
 }
 
 // GetByID retrieves a habit by its ID
 func (r *habitRepository) GetByID(id int64) (*models.Habit, error) {
 	query := `
-		SELECT id, user_id, name, description, created_at
+		SELECT id, user_id, name, description, duration_seconds, created_at
 		FROM habits
 		WHERE id = ?
 	`
 	habit := &models.Habit{}
+	var duration sql.NullInt64
 	err := r.db.QueryRow(query, id).Scan(
 		&habit.ID,
 		&habit.UserID,
 		&habit.Name,
 		&habit.Description,
+		&duration,
 		&habit.CreatedAt,
 	)
 	if err == sql.ErrNoRows {
@@ -75,13 +83,18 @@ func (r *habitRepository) GetByID(id int64) (*models.Habit, error) {
 		return nil, fmt.Errorf("failed to get habit: %w", err)
 	}
 
+	if duration.Valid {
+		v := int(duration.Int64)
+		habit.DurationSeconds = &v
+	}
+
 	return habit, nil
 }
 
 // GetByUserID retrieves all habits for a specific user
 func (r *habitRepository) GetByUserID(userID int64) ([]*models.Habit, error) {
 	query := `
-		SELECT id, user_id, name, description, created_at
+		SELECT id, user_id, name, description, duration_seconds, created_at
 		FROM habits
 		WHERE user_id = ?
 		ORDER BY created_at DESC
@@ -95,8 +108,13 @@ func (r *habitRepository) GetByUserID(userID int64) ([]*models.Habit, error) {
 	var habits []*models.Habit
 	for rows.Next() {
 		habit := &models.Habit{}
-		if err := rows.Scan(&habit.ID, &habit.UserID, &habit.Name, &habit.Description, &habit.CreatedAt); err != nil {
+		var duration sql.NullInt64
+		if err := rows.Scan(&habit.ID, &habit.UserID, &habit.Name, &habit.Description, &duration, &habit.CreatedAt); err != nil {
 			return nil, fmt.Errorf("failed to scan habit: %w", err)
+		}
+		if duration.Valid {
+			v := int(duration.Int64)
+			habit.DurationSeconds = &v
 		}
 		habits = append(habits, habit)
 	}
@@ -112,10 +130,16 @@ func (r *habitRepository) GetByUserID(userID int64) ([]*models.Habit, error) {
 func (r *habitRepository) Update(habit *models.Habit) error {
 	query := `
 		UPDATE habits
-		SET name = ?, description = ?
+		SET name = ?, description = ?, duration_seconds = ?
 		WHERE id = ?
 	`
-	result, err := r.db.Exec(query, habit.Name, habit.Description, habit.ID)
+	var duration interface{}
+	if habit.DurationSeconds != nil {
+		duration = *habit.DurationSeconds
+	} else {
+		duration = nil
+	}
+	result, err := r.db.Exec(query, habit.Name, habit.Description, duration, habit.ID)
 	if err != nil {
 		return fmt.Errorf("failed to update habit: %w", err)
 	}

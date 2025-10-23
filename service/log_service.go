@@ -40,10 +40,26 @@ func (s *logService) Create(userID int64, req *models.CreateLogRequest) (*models
 		return nil, fmt.Errorf("habit not found")
 	}
 
+	// Enforce duration requirement: if habit has a duration, log must include duration
+	if habit.DurationSeconds != nil {
+		if req.DurationSeconds == nil {
+			return nil, fmt.Errorf("duration_seconds is required for logs of this habit")
+		}
+		if *req.DurationSeconds <= 0 {
+			return nil, fmt.Errorf("duration_seconds must be positive")
+		}
+	} else {
+		// If provided, still validate positivity
+		if req.DurationSeconds != nil && *req.DurationSeconds <= 0 {
+			return nil, fmt.Errorf("duration_seconds must be positive")
+		}
+	}
+
 	// Create log
 	log := &models.Log{
-		HabitID: req.HabitID,
-		Notes:   req.Notes,
+		HabitID:         req.HabitID,
+		Notes:           req.Notes,
+		DurationSeconds: req.DurationSeconds,
 	}
 
 	if err := s.logRepo.Create(log); err != nil {
@@ -97,6 +113,12 @@ func (s *logService) Update(id, userID int64, req *models.UpdateLogRequest) (*mo
 	// Update fields if provided
 	if req.Notes != nil {
 		log.Notes = *req.Notes
+	}
+	if req.DurationSeconds != nil {
+		if *req.DurationSeconds <= 0 {
+			return nil, fmt.Errorf("duration_seconds must be positive")
+		}
+		log.DurationSeconds = req.DurationSeconds
 	}
 
 	if err := s.logRepo.Update(log); err != nil {
