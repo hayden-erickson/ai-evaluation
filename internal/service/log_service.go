@@ -30,6 +30,9 @@ func (s *logService) Create(ctx context.Context, requesterID int64, l *models.Lo
 	if err != nil { return 0, err }
 	if h == nil { return 0, errors.New("habit not found") }
 	if h.UserID != requesterID { return 0, errors.New("forbidden") }
+	if h.DurationSeconds != nil && l.DurationSeconds == nil {
+		return 0, errors.New("duration required for this habit")
+	}
 	return s.logs.Create(ctx, l)
 }
 
@@ -57,6 +60,13 @@ func (s *logService) Update(ctx context.Context, requesterID int64, l *models.Lo
 	h, err := s.habits.GetByID(ctx, existing.HabitID)
 	if err != nil { return err }
 	if h == nil || h.UserID != requesterID { return errors.New("forbidden") }
+	// Merge existing duration if not provided in update payload
+	if l.DurationSeconds == nil {
+		l.DurationSeconds = existing.DurationSeconds
+	}
+	if h.DurationSeconds != nil && l.DurationSeconds == nil {
+		return errors.New("duration required for this habit")
+	}
 	return s.logs.Update(ctx, l)
 }
 

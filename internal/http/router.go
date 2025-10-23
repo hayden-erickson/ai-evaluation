@@ -87,10 +87,14 @@ func NewRouter(auth service.AuthService, users service.UserService, habits servi
 		uid := middleware.GetUserID(r)
 		switch r.Method {
 		case stdhttp.MethodPost:
-			var req struct{ Name, Description string }
+			var req struct{
+				Name string `json:"name"`
+				Description string `json:"description"`
+				DurationSeconds *int64 `json:"duration_seconds"`
+			}
 			if err := json.NewDecoder(r.Body).Decode(&req); err != nil { writeError(w, stdhttp.StatusBadRequest, "invalid json"); return }
 			if err := validation.ValidateNonEmpty(req.Name, "name"); err != nil { writeError(w, stdhttp.StatusBadRequest, err.Error()); return }
-			h := &models.Habit{UserID: uid, Name: req.Name, Description: req.Description}
+			h := &models.Habit{UserID: uid, Name: req.Name, Description: req.Description, DurationSeconds: req.DurationSeconds}
 			id, err := habits.Create(r.Context(), h)
 			if err != nil { log.Printf("create habit error: %v", err); writeError(w, stdhttp.StatusInternalServerError, "server error"); return }
 			h.ID = id
@@ -118,9 +122,9 @@ func NewRouter(auth service.AuthService, users service.UserService, habits servi
 			if err != nil { writeError(w, stdhttp.StatusBadRequest, "invalid id"); return }
 			switch r.Method {
 			case stdhttp.MethodPost:
-				var req struct{ Notes string }
+				var req struct{ Notes string `json:"notes"`; DurationSeconds *int64 `json:"duration_seconds"` }
 				if err := json.NewDecoder(r.Body).Decode(&req); err != nil { writeError(w, stdhttp.StatusBadRequest, "invalid json"); return }
-				l := &models.LogEntry{HabitID: habitID, Notes: req.Notes}
+				l := &models.LogEntry{HabitID: habitID, Notes: req.Notes, DurationSeconds: req.DurationSeconds}
 				id, err := logs.Create(r.Context(), uid, l)
 				if err != nil { log.Printf("create log error: %v", err); writeError(w, stdhttp.StatusForbidden, err.Error()); return }
 				l.ID = id
@@ -146,9 +150,13 @@ func NewRouter(auth service.AuthService, users service.UserService, habits servi
 			if h == nil { writeError(w, stdhttp.StatusNotFound, "not found"); return }
 			writeJSON(w, stdhttp.StatusOK, h)
 		case stdhttp.MethodPut:
-			var req struct{ Name, Description string }
+			var req struct{
+				Name string `json:"name"`
+				Description string `json:"description"`
+				DurationSeconds *int64 `json:"duration_seconds"`
+			}
 			if err := json.NewDecoder(r.Body).Decode(&req); err != nil { writeError(w, stdhttp.StatusBadRequest, "invalid json"); return }
-			h := &models.Habit{ID: id, Name: req.Name, Description: req.Description}
+			h := &models.Habit{ID: id, Name: req.Name, Description: req.Description, DurationSeconds: req.DurationSeconds}
 			if err := habits.Update(r.Context(), uid, h); err != nil {
 				log.Printf("update habit error: %v", err)
 				status := stdhttp.StatusInternalServerError
@@ -185,9 +193,9 @@ func NewRouter(auth service.AuthService, users service.UserService, habits servi
 			if l == nil { writeError(w, stdhttp.StatusNotFound, "not found"); return }
 			writeJSON(w, stdhttp.StatusOK, l)
 		case stdhttp.MethodPut:
-			var req struct{ Notes string }
+			var req struct{ Notes string `json:"notes"`; DurationSeconds *int64 `json:"duration_seconds"` }
 			if err := json.NewDecoder(r.Body).Decode(&req); err != nil { writeError(w, stdhttp.StatusBadRequest, "invalid json"); return }
-			l := &models.LogEntry{ID: id, Notes: req.Notes}
+			l := &models.LogEntry{ID: id, Notes: req.Notes, DurationSeconds: req.DurationSeconds}
 			if err := logs.Update(r.Context(), uid, l); err != nil { log.Printf("update log error: %v", err); writeError(w, stdhttp.StatusForbidden, err.Error()); return }
 			writeJSON(w, stdhttp.StatusOK, map[string]string{"status": "updated"})
 		case stdhttp.MethodDelete:
