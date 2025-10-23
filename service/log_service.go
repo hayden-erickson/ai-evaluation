@@ -44,7 +44,7 @@ func (s *logService) Create(userID int64, req *models.LogCreateRequest) (*models
 	if req.HabitID == 0 {
 		return nil, errors.New("habit_id is required")
 	}
-	
+
 	// Verify the habit exists and belongs to the user
 	habit, err := s.habitRepo.GetByID(req.HabitID)
 	if err != nil {
@@ -56,18 +56,27 @@ func (s *logService) Create(userID int64, req *models.LogCreateRequest) (*models
 	if habit.UserID != userID {
 		return nil, ErrUnauthorized
 	}
-	
+
+	if habit.Duration != nil && req.Duration == nil {
+		return nil, errors.New("log must have a duration if the habit has a duration")
+	}
+
+	if habit.Duration == nil && req.Duration != nil {
+		return nil, errors.New("log cannot have a duration if the habit does not have a duration")
+	}
+
 	// Create log
 	log := &models.Log{
 		HabitID:   req.HabitID,
 		Notes:     utils.SanitizeString(req.Notes),
+		Duration:  req.Duration,
 		CreatedAt: time.Now(),
 	}
-	
+
 	if err := s.logRepo.Create(log); err != nil {
 		return nil, fmt.Errorf("failed to create log: %w", err)
 	}
-	
+
 	return log, nil
 }
 
@@ -80,7 +89,7 @@ func (s *logService) GetByID(id, userID int64) (*models.Log, error) {
 	if log == nil {
 		return nil, ErrLogNotFound
 	}
-	
+
 	// Verify the associated habit belongs to the user
 	habit, err := s.habitRepo.GetByID(log.HabitID)
 	if err != nil {
@@ -89,7 +98,7 @@ func (s *logService) GetByID(id, userID int64) (*models.Log, error) {
 	if habit == nil || habit.UserID != userID {
 		return nil, ErrUnauthorized
 	}
-	
+
 	return log, nil
 }
 
@@ -106,7 +115,7 @@ func (s *logService) GetByHabitID(habitID, userID int64) ([]*models.Log, error) 
 	if habit.UserID != userID {
 		return nil, ErrUnauthorized
 	}
-	
+
 	logs, err := s.logRepo.GetByHabitID(habitID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get logs: %w", err)
@@ -124,13 +133,13 @@ func (s *logService) Update(id, userID int64, req *models.LogUpdateRequest) erro
 	if log == nil {
 		return ErrLogNotFound
 	}
-	
+
 	// Sanitize fields
 	if req.Notes != nil {
 		notes := utils.SanitizeString(*req.Notes)
 		req.Notes = &notes
 	}
-	
+
 	return s.logRepo.Update(id, req)
 }
 
@@ -144,6 +153,6 @@ func (s *logService) Delete(id, userID int64) error {
 	if log == nil {
 		return ErrLogNotFound
 	}
-	
+
 	return s.logRepo.Delete(id)
 }

@@ -10,6 +10,7 @@ type Habit struct {
 	UserID      int64     `json:"user_id"`
 	Name        string    `json:"name"`
 	Description string    `json:"description"`
+	Duration    *int64    `json:"duration,omitempty"`
 	CreatedAt   time.Time `json:"created_at"`
 }
 
@@ -17,10 +18,12 @@ type Habit struct {
 type HabitCreateRequest struct {
 	Name        string `json:"name" validate:"required"`
 	Description string `json:"description"`
+	Duration    *int64 `json:"duration"`
 }
 
 // HabitUpdateRequest represents the request to update a habit
 type HabitUpdateRequest struct {
 	Name        *string `json:"name,omitempty"`
 	Description *string `json:"description,omitempty"`
+	Duration    *int64  `json:"duration,omitempty"`
 }

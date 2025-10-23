@@ -1,0 +1,2 @@
+ALTER TABLE habits ADD COLUMN duration INTEGER;
+ALTER TABLE logs ADD COLUMN duration INTEGER;

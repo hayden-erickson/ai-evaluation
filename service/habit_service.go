@@ -42,19 +42,20 @@ func (s *habitService) Create(userID int64, req *models.HabitCreateRequest) (*mo
 	if err := utils.ValidateRequired(req.Name, "name"); err != nil {
 		return nil, err
 	}
-	
+
 	// Create habit
 	habit := &models.Habit{
 		UserID:      userID,
 		Name:        utils.SanitizeString(req.Name),
 		Description: utils.SanitizeString(req.Description),
+		Duration:    req.Duration,
 		CreatedAt:   time.Now(),
 	}
-	
+
 	if err := s.repo.Create(habit); err != nil {
 		return nil, fmt.Errorf("failed to create habit: %w", err)
 	}
-	
+
 	return habit, nil
 }
 
@@ -67,12 +68,12 @@ func (s *habitService) GetByID(id, userID int64) (*models.Habit, error) {
 	if habit == nil {
 		return nil, ErrHabitNotFound
 	}
-	
+
 	// Verify the habit belongs to the user
 	if habit.UserID != userID {
 		return nil, ErrUnauthorized
 	}
-	
+
 	return habit, nil
 }
 
@@ -95,7 +96,7 @@ func (s *habitService) Update(id, userID int64, req *models.HabitUpdateRequest) 
 	if habit == nil {
 		return ErrHabitNotFound
 	}
-	
+
 	// Validate and sanitize fields
 	if req.Name != nil {
 		name := utils.SanitizeString(*req.Name)
@@ -108,7 +109,7 @@ func (s *habitService) Update(id, userID int64, req *models.HabitUpdateRequest) 
 		description := utils.SanitizeString(*req.Description)
 		req.Description = &description
 	}
-	
+
 	return s.repo.Update(id, req)
 }
 
@@ -122,6 +123,6 @@ func (s *habitService) Delete(id, userID int64) error {
 	if habit == nil {
 		return ErrHabitNotFound
 	}
-	
+
 	return s.repo.Delete(id)
 }
