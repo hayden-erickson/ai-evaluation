@@ -2,6 +2,7 @@ package service
 
 import (
 	"errors"
+
 	"github.com/hayden-erickson/ai-evaluation/internal/models"
 	"github.com/hayden-erickson/ai-evaluation/internal/repository"
 )
@@ -34,6 +35,14 @@ func (s *logService) CreateLog(log *models.Log, userID int64) error {
 	if habit.UserID != userID {
 		return errors.New("user does not have permission to create logs for this habit")
 	}
+
+	if habit.Duration != nil && log.Duration == nil {
+		return errors.New("habit has a duration, so log must also have a duration")
+	}
+	if habit.Duration == nil && log.Duration != nil {
+		return errors.New("habit does not have a duration, so log cannot have a duration")
+	}
+
 	return s.logRepo.CreateLog(log)
 }
 
@@ -78,6 +87,14 @@ func (s *logService) UpdateLog(log *models.Log, userID int64) error {
 	if habit.UserID != userID {
 		return errors.New("user does not have permission to update this log")
 	}
+
+	if habit.Duration != nil && log.Duration == nil {
+		return errors.New("habit has a duration, so log must also have a duration")
+	}
+	if habit.Duration == nil && log.Duration != nil {
+		return errors.New("habit does not have a duration, so log cannot have a duration")
+	}
+
 	return s.logRepo.UpdateLog(log)
 }
 

@@ -2,6 +2,7 @@ package repository
 
 import (
 	"database/sql"
+
 	"github.com/hayden-erickson/ai-evaluation/internal/models"
 )
 
@@ -25,8 +26,8 @@ func NewLogRepository(db *sql.DB) LogRepository {
 
 // CreateLog creates a new log in the database
 func (r *logRepository) CreateLog(log *models.Log) error {
-	query := `INSERT INTO logs (habit_id, notes) VALUES (?, ?)`
-	res, err := r.db.Exec(query, log.HabitID, log.Notes)
+	query := `INSERT INTO logs (habit_id, notes, duration) VALUES (?, ?, ?)`
+	res, err := r.db.Exec(query, log.HabitID, log.Notes, log.Duration)
 	if err != nil {
 		return err
 	}
@@ -41,8 +42,8 @@ func (r *logRepository) CreateLog(log *models.Log) error {
 // GetLogByID retrieves a log from the database by ID
 func (r *logRepository) GetLogByID(id int64) (*models.Log, error) {
 	log := &models.Log{}
-	query := `SELECT id, habit_id, notes, created_at FROM logs WHERE id = ?`
-	err := r.db.QueryRow(query, id).Scan(&log.ID, &log.HabitID, &log.Notes, &log.CreatedAt)
+	query := `SELECT id, habit_id, notes, duration, created_at FROM logs WHERE id = ?`
+	err := r.db.QueryRow(query, id).Scan(&log.ID, &log.HabitID, &log.Notes, &log.Duration, &log.CreatedAt)
 	if err != nil {
 		return nil, err
 	}
@@ -51,7 +52,7 @@ func (r *logRepository) GetLogByID(id int64) (*models.Log, error) {
 
 // GetLogsByHabitID retrieves all logs for a habit
 func (r *logRepository) GetLogsByHabitID(habitID int64) ([]*models.Log, error) {
-	query := `SELECT id, habit_id, notes, created_at FROM logs WHERE habit_id = ?`
+	query := `SELECT id, habit_id, notes, duration, created_at FROM logs WHERE habit_id = ?`
 	rows, err := r.db.Query(query, habitID)
 	if err != nil {
 		return nil, err
@@ -61,7 +62,7 @@ func (r *logRepository) GetLogsByHabitID(habitID int64) ([]*models.Log, error) {
 	var logs []*models.Log
 	for rows.Next() {
 		log := &models.Log{}
-		err := rows.Scan(&log.ID, &log.HabitID, &log.Notes, &log.CreatedAt)
+		err := rows.Scan(&log.ID, &log.HabitID, &log.Notes, &log.Duration, &log.CreatedAt)
 		if err != nil {
 			return nil, err
 		}
@@ -72,8 +73,8 @@ func (r *logRepository) GetLogsByHabitID(habitID int64) ([]*models.Log, error) {
 
 // UpdateLog updates a log in the database
 func (r *logRepository) UpdateLog(log *models.Log) error {
-	query := `UPDATE logs SET notes = ? WHERE id = ?`
-	_, err := r.db.Exec(query, log.Notes, log.ID)
+	query := `UPDATE logs SET notes = ?, duration = ? WHERE id = ?`
+	_, err := r.db.Exec(query, log.Notes, log.Duration, log.ID)
 	return err
 }
 

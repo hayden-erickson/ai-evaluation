@@ -2,6 +2,7 @@ package repository
 
 import (
 	"database/sql"
+
 	"github.com/hayden-erickson/ai-evaluation/internal/models"
 )
 
@@ -25,8 +26,8 @@ func NewHabitRepository(db *sql.DB) HabitRepository {
 
 // CreateHabit creates a new habit in the database
 func (r *habitRepository) CreateHabit(habit *models.Habit) error {
-	query := `INSERT INTO habits (user_id, name, description) VALUES (?, ?, ?)`
-	res, err := r.db.Exec(query, habit.UserID, habit.Name, habit.Description)
+	query := `INSERT INTO habits (user_id, name, description, duration) VALUES (?, ?, ?, ?)`
+	res, err := r.db.Exec(query, habit.UserID, habit.Name, habit.Description, habit.Duration)
 	if err != nil {
 		return err
 	}
@@ -41,8 +42,8 @@ func (r *habitRepository) CreateHabit(habit *models.Habit) error {
 // GetHabitByID retrieves a habit from the database by ID
 func (r *habitRepository) GetHabitByID(id int64) (*models.Habit, error) {
 	habit := &models.Habit{}
-	query := `SELECT id, user_id, name, description, created_at FROM habits WHERE id = ?`
-	err := r.db.QueryRow(query, id).Scan(&habit.ID, &habit.UserID, &habit.Name, &habit.Description, &habit.CreatedAt)
+	query := `SELECT id, user_id, name, description, duration, created_at FROM habits WHERE id = ?`
+	err := r.db.QueryRow(query, id).Scan(&habit.ID, &habit.UserID, &habit.Name, &habit.Description, &habit.Duration, &habit.CreatedAt)
 	if err != nil {
 		return nil, err
 	}
@@ -51,7 +52,7 @@ func (r *habitRepository) GetHabitByID(id int64) (*models.Habit, error) {
 
 // GetHabitsByUserID retrieves all habits for a user
 func (r *habitRepository) GetHabitsByUserID(userID int64) ([]*models.Habit, error) {
-	query := `SELECT id, user_id, name, description, created_at FROM habits WHERE user_id = ?`
+	query := `SELECT id, user_id, name, description, duration, created_at FROM habits WHERE user_id = ?`
 	rows, err := r.db.Query(query, userID)
 	if err != nil {
 		return nil, err
@@ -61,7 +62,7 @@ func (r *habitRepository) GetHabitsByUserID(userID int64) ([]*models.Habit, erro
 	var habits []*models.Habit
 	for rows.Next() {
 		habit := &models.Habit{}
-		err := rows.Scan(&habit.ID, &habit.UserID, &habit.Name, &habit.Description, &habit.CreatedAt)
+		err := rows.Scan(&habit.ID, &habit.UserID, &habit.Name, &habit.Description, &habit.Duration, &habit.CreatedAt)
 		if err != nil {
 			return nil, err
 		}
@@ -72,8 +73,8 @@ func (r *habitRepository) GetHabitsByUserID(userID int64) ([]*models.Habit, erro
 
 // UpdateHabit updates a habit in the database
 func (r *habitRepository) UpdateHabit(habit *models.Habit) error {
-	query := `UPDATE habits SET name = ?, description = ? WHERE id = ?`
-	_, err := r.db.Exec(query, habit.Name, habit.Description, habit.ID)
+	query := `UPDATE habits SET name = ?, description = ?, duration = ? WHERE id = ?`
+	_, err := r.db.Exec(query, habit.Name, habit.Description, habit.Duration, habit.ID)
 	return err
 }
 
