@@ -31,8 +31,8 @@ func NewLogRepository(db *sql.DB) LogRepository {
 func (r *logRepository) Create(habitID int64, log *models.CreateLogRequest) (*models.Log, error) {
 	// Insert the log
 	result, err := r.db.Exec(
-		"INSERT INTO logs (habit_id, notes) VALUES (?, ?)",
-		habitID, log.Notes,
+		"INSERT INTO logs (habit_id, notes, duration_seconds) VALUES (?, ?, ?)",
+		habitID, log.Notes, log.DurationSeconds,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create log: %w", err)
@@ -52,18 +52,25 @@ func (r *logRepository) Create(habitID int64, log *models.CreateLogRequest) (*mo
 func (r *logRepository) GetByID(id int64) (*models.Log, error) {
 	log := &models.Log{}
 	var createdAt string
+	var durationSeconds sql.NullInt64
 
 	// Query the log
 	err := r.db.QueryRow(
-		"SELECT id, habit_id, notes, created_at FROM logs WHERE id = ?",
+		"SELECT id, habit_id, notes, duration_seconds, created_at FROM logs WHERE id = ?",
 		id,
-	).Scan(&log.ID, &log.HabitID, &log.Notes, &createdAt)
+	).Scan(&log.ID, &log.HabitID, &log.Notes, &durationSeconds, &createdAt)
 
 	if err == sql.ErrNoRows {
 		return nil, fmt.Errorf("log not found")
 	}
 	if err != nil {
 		return nil, fmt.Errorf("failed to get log: %w", err)
+	}
+
+	// Set duration_seconds if not null
+	if durationSeconds.Valid {
+		duration := int(durationSeconds.Int64)
+		log.DurationSeconds = &duration
 	}
 
 	// Parse created_at timestamp
@@ -83,7 +90,7 @@ func (r *logRepository) GetByID(id int64) (*models.Log, error) {
 func (r *logRepository) GetByHabitID(habitID int64) ([]*models.Log, error) {
 	// Query all logs for the habit
 	rows, err := r.db.Query(
-		"SELECT id, habit_id, notes, created_at FROM logs WHERE habit_id = ? ORDER BY created_at DESC",
+		"SELECT id, habit_id, notes, duration_seconds, created_at FROM logs WHERE habit_id = ? ORDER BY created_at DESC",
 		habitID,
 	)
 	if err != nil {
@@ -95,10 +102,17 @@ func (r *logRepository) GetByHabitID(habitID int64) ([]*models.Log, error) {
 	for rows.Next() {
 		log := &models.Log{}
 		var createdAt string
+		var durationSeconds sql.NullInt64
 
-		err := rows.Scan(&log.ID, &log.HabitID, &log.Notes, &createdAt)
+		err := rows.Scan(&log.ID, &log.HabitID, &log.Notes, &durationSeconds, &createdAt)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan log: %w", err)
+		}
+
+		// Set duration_seconds if not null
+		if durationSeconds.Valid {
+			duration := int(durationSeconds.Int64)
+			log.DurationSeconds = &duration
 		}
 
 		// Parse created_at timestamp
@@ -131,6 +145,10 @@ func (r *logRepository) Update(id int64, req *models.UpdateLogRequest) (*models.
 	if req.Notes != nil {
 		updates = append(updates, "notes = ?")
 		args = append(args, *req.Notes)
+	}
+	if req.DurationSeconds != nil {
+		updates = append(updates, "duration_seconds = ?")
+		args = append(args, *req.DurationSeconds)
 	}
 
 	// No fields to update
