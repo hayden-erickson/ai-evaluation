@@ -42,11 +42,11 @@ type TestStats struct {
 
 // User credentials for testing
 type TestUser struct {
-	PhoneNumber string
-	Password    string
-	Token       string
-	UserID      int64
-	Habits      []TestHabit
+	Email    string
+	Password string
+	Token    string
+	UserID   int64
+	Habits   []TestHabit
 }
 
 // Habit for testing
@@ -155,15 +155,13 @@ func main() {
 
 // testHealthEndpoint checks if the API is responsive
 func testHealthEndpoint(baseURL string) error {
-	resp, err := http.Get(baseURL + "/health")
+	// Try to reach the base URL since there's no dedicated health endpoint
+	resp, err := http.Get(baseURL)
 	if err != nil {
 		return err
 	}
 	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("unexpected status code: %d", resp.StatusCode)
-	}
+	// Accept any response as long as the server is reachable
 	return nil
 }
 
@@ -182,8 +180,8 @@ func registerUsers(config TestConfig, stats *TestStats) []*TestUser {
 			defer wg.Done()
 			for userNum := range workerChan {
 				user := &TestUser{
-					PhoneNumber: fmt.Sprintf("+1555000%04d", userNum),
-					Password:    "TestPassword123!",
+					Email:    fmt.Sprintf("testuser%04d@example.com", userNum),
+					Password: "TestPassword123!",
 				}
 
 				start := time.Now()
@@ -222,14 +220,14 @@ func registerUsers(config TestConfig, stats *TestStats) []*TestUser {
 // registerUser registers a single user
 func registerUser(baseURL string, user *TestUser) error {
 	payload := map[string]interface{}{
-		"phone_number": user.PhoneNumber,
-		"password":     user.Password,
-		"name":         "Test User " + user.PhoneNumber,
-		"time_zone":    "America/New_York",
+		"email":     user.Email,
+		"password":  user.Password,
+		"name":      "Test User " + user.Email,
+		"time_zone": "America/New_York",
 	}
 
 	jsonData, _ := json.Marshal(payload)
-	resp, err := http.Post(baseURL+"/api/register", "application/json", bytes.NewBuffer(jsonData))
+	resp, err := http.Post(baseURL+"/auth/register", "application/json", bytes.NewBuffer(jsonData))
 	if err != nil {
 		return err
 	}
@@ -259,7 +257,7 @@ func loginUsers(config TestConfig, stats *TestStats, users []*TestUser) {
 			defer wg.Done()
 			start := time.Now()
 			if err := loginUser(config.BaseURL, u); err != nil {
-				log.Printf("Failed to login user %s: %v", u.PhoneNumber, err)
+				log.Printf("Failed to login user %s: %v", u.Email, err)
 				recordRequest(stats, start, false, &stats.LoginLatencies)
 				return
 			}
@@ -273,12 +271,12 @@ func loginUsers(config TestConfig, stats *TestStats, users []*TestUser) {
 // loginUser logs in a single user
 func loginUser(baseURL string, user *TestUser) error {
 	payload := map[string]string{
-		"phone_number": user.PhoneNumber,
-		"password":     user.Password,
+		"email":    user.Email,
+		"password": user.Password,
 	}
 
 	jsonData, _ := json.Marshal(payload)
-	resp, err := http.Post(baseURL+"/api/login", "application/json", bytes.NewBuffer(jsonData))
+	resp, err := http.Post(baseURL+"/auth/login", "application/json", bytes.NewBuffer(jsonData))
 	if err != nil {
 		return err
 	}
@@ -310,7 +308,7 @@ func createHabits(config TestConfig, stats *TestStats, users []*TestUser) {
 				start := time.Now()
 				habit, err := createHabit(config.BaseURL, u, habitNum)
 				if err != nil {
-					log.Printf("Failed to create habit for user %s: %v", u.PhoneNumber, err)
+					log.Printf("Failed to create habit for user %s: %v", u.Email, err)
 					recordRequest(stats, start, false, &stats.CreateHabitLatencies)
 					return
 				}
@@ -326,12 +324,12 @@ func createHabits(config TestConfig, stats *TestStats, users []*TestUser) {
 // createHabit creates a single habit
 func createHabit(baseURL string, user *TestUser, habitNum int) (TestHabit, error) {
 	payload := map[string]string{
-		"name":        fmt.Sprintf("Habit %d for %s", habitNum, user.PhoneNumber),
+		"name":        fmt.Sprintf("Habit %d for %s", habitNum, user.Email),
 		"description": fmt.Sprintf("Test habit description %d", habitNum),
 	}
 
 	jsonData, _ := json.Marshal(payload)
-	req, _ := http.NewRequest("POST", baseURL+"/api/habits", bytes.NewBuffer(jsonData))
+	req, _ := http.NewRequest("POST", baseURL+"/habits", bytes.NewBuffer(jsonData))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+user.Token)
 
@@ -382,12 +380,12 @@ func createLogs(config TestConfig, stats *TestStats, users []*TestUser) {
 // createLog creates a single log entry
 func createLog(baseURL string, user *TestUser, habit TestHabit, logNum int) error {
 	payload := map[string]interface{}{
-		"habit_id": habit.ID,
-		"notes":    fmt.Sprintf("Log entry %d for habit %s", logNum, habit.Name),
+		"notes": fmt.Sprintf("Log entry %d for habit %s", logNum, habit.Name),
 	}
 
 	jsonData, _ := json.Marshal(payload)
-	req, _ := http.NewRequest("POST", baseURL+"/api/logs", bytes.NewBuffer(jsonData))
+	url := fmt.Sprintf("%s/habits/%d/logs", baseURL, habit.ID)
+	req, _ := http.NewRequest("POST", url, bytes.NewBuffer(jsonData))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+user.Token)
 
@@ -446,7 +444,7 @@ func performReadOperations(config TestConfig, stats *TestStats, users []*TestUse
 
 // getHabits retrieves all habits for a user
 func getHabits(baseURL string, user *TestUser) error {
-	req, _ := http.NewRequest("GET", baseURL+"/api/habits", nil)
+	req, _ := http.NewRequest("GET", baseURL+"/habits", nil)
 	req.Header.Set("Authorization", "Bearer "+user.Token)
 
 	resp, err := http.DefaultClient.Do(req)
@@ -465,7 +463,7 @@ func getHabits(baseURL string, user *TestUser) error {
 
 // getLogs retrieves all logs for a habit
 func getLogs(baseURL string, user *TestUser, habit TestHabit) error {
-	url := fmt.Sprintf("%s/api/logs?habit_id=%d", baseURL, habit.ID)
+	url := fmt.Sprintf("%s/habits/%d/logs", baseURL, habit.ID)
 	req, _ := http.NewRequest("GET", url, nil)
 	req.Header.Set("Authorization", "Bearer "+user.Token)
 
