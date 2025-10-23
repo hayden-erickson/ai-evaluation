@@ -9,6 +9,7 @@ import (
 type UserService interface {
 	CreateUser(user *models.User) error
 	GetUser(id int64) (*models.User, error)
+	GetUserByPhoneNumber(phoneNumber string) (*models.User, error)
 	UpdateUser(user *models.User) error
 	DeleteUser(id int64) error
 }
@@ -31,6 +32,11 @@ func (s *userService) CreateUser(user *models.User) error {
 // GetUser retrieves a user by ID
 func (s *userService) GetUser(id int64) (*models.User, error) {
 	return s.userRepo.GetUserByID(id)
+}
+
+// GetUserByPhoneNumber retrieves a user by phone number
+func (s *userService) GetUserByPhoneNumber(phoneNumber string) (*models.User, error) {
+	return s.userRepo.GetUserByPhoneNumber(phoneNumber)
 }
 
 // UpdateUser updates a user

@@ -23,12 +23,14 @@ func main() {
 	habitService := service.NewHabitService(habitRepo)
 	logService := service.NewLogService(logRepo, habitRepo)
 
+	authHandler := handlers.NewAuthHandler(userService)
 	userHandler := handlers.NewUserHandler(userService)
 	habitHandler := handlers.NewHabitHandler(habitService)
 	logHandler := handlers.NewLogHandler(logService)
 
 	mux := http.NewServeMux()
 
+	authHandler.AuthRoutes(mux)
 	userHandler.UserRoutes(mux)
 
 	// Protected routes

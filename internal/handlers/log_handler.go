@@ -3,10 +3,11 @@ package handlers
 import (
 	"encoding/json"
 	"net/http"
+	"strconv"
+
 	"github.com/hayden-erickson/ai-evaluation/internal/auth"
 	"github.com/hayden-erickson/ai-evaluation/internal/models"
 	"github.com/hayden-erickson/ai-evaluation/internal/service"
-	"strconv"
 )
 
 // LogHandler handles log-related requests
@@ -149,7 +150,7 @@ func (h *LogHandler) DeleteLog(w http.ResponseWriter, r *http.Request) {
 
 // LogRoutes registers the log routes
 func (h *LogHandler) LogRoutes(mux *http.ServeMux) {
-	mux.HandleFunc("/logs", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/logs/", func(w http.ResponseWriter, r *http.Request) {
 		switch r.Method {
 		case http.MethodPost:
 			h.CreateLog(w, r)

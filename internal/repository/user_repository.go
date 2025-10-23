@@ -2,6 +2,7 @@ package repository
 
 import (
 	"database/sql"
+
 	"github.com/hayden-erickson/ai-evaluation/internal/models"
 )
 
@@ -9,6 +10,7 @@ import (
 type UserRepository interface {
 	CreateUser(user *models.User) error
 	GetUserByID(id int64) (*models.User, error)
+	GetUserByPhoneNumber(phoneNumber string) (*models.User, error)
 	UpdateUser(user *models.User) error
 	DeleteUser(id int64) error
 }
@@ -42,6 +44,17 @@ func (r *userRepository) GetUserByID(id int64) (*models.User, error) {
 	user := &models.User{}
 	query := `SELECT id, profile_image_url, name, time_zone, phone_number, created_at FROM users WHERE id = ?`
 	err := r.db.QueryRow(query, id).Scan(&user.ID, &user.ProfileImageURL, &user.Name, &user.TimeZone, &user.PhoneNumber, &user.CreatedAt)
+	if err != nil {
+		return nil, err
+	}
+	return user, nil
+}
+
+// GetUserByPhoneNumber retrieves a user from the database by phone number
+func (r *userRepository) GetUserByPhoneNumber(phoneNumber string) (*models.User, error) {
+	user := &models.User{}
+	query := `SELECT id, profile_image_url, name, time_zone, phone_number, created_at FROM users WHERE phone_number = ?`
+	err := r.db.QueryRow(query, phoneNumber).Scan(&user.ID, &user.ProfileImageURL, &user.Name, &user.TimeZone, &user.PhoneNumber, &user.CreatedAt)
 	if err != nil {
 		return nil, err
 	}

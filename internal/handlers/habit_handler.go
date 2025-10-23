@@ -3,10 +3,11 @@ package handlers
 import (
 	"encoding/json"
 	"net/http"
+	"strconv"
+
 	"github.com/hayden-erickson/ai-evaluation/internal/auth"
 	"github.com/hayden-erickson/ai-evaluation/internal/models"
 	"github.com/hayden-erickson/ai-evaluation/internal/service"
-	"strconv"
 )
 
 // HabitHandler handles habit-related requests
@@ -144,7 +145,7 @@ func (h *HabitHandler) DeleteHabit(w http.ResponseWriter, r *http.Request) {
 
 // HabitRoutes registers the habit routes
 func (h *HabitHandler) HabitRoutes(mux *http.ServeMux) {
-	mux.HandleFunc("/habits", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/habits/", func(w http.ResponseWriter, r *http.Request) {
 		switch r.Method {
 		case http.MethodPost:
 			h.CreateHabit(w, r)

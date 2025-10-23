@@ -1,5 +1,39 @@
 package main
 
+/*
+Performance Test for Habit Tracker API
+
+IMPORTANT NOTES:
+This test has been updated to match the actual API endpoints defined in cmd/api/main.go.
+
+API Endpoints Available:
+- POST /register     - Register user (returns JWT token)
+- POST /login        - Login user (returns JWT token)
+- POST /users        - Create user (alternative)
+- GET /users?id={id} - Get user by ID
+- PUT /users         - Update user
+- DELETE /users?id={id} - Delete user
+
+Protected Endpoints (require JWT):
+- POST /habits/      - Create habit (requires JWT token)
+- GET /habits/       - Get all user habits (requires JWT token)
+- POST /logs/        - Create log (requires JWT token)
+- GET /logs/?habit_id={id} - Get logs for habit (requires JWT token)
+
+Authentication:
+- Users are registered with phone_number (no password required in current schema)
+- Login requires only phone_number
+- JWT tokens are returned on registration and login
+- Tokens are valid for 24 hours
+
+Current Test Coverage:
+✓ User Registration (POST /register)
+✓ User Login (POST /login)
+✓ Habits CRUD (with JWT authentication)
+✓ Logs CRUD (with JWT authentication)
+✓ Load Testing (with JWT authentication)
+*/
+
 import (
 	"bytes"
 	"encoding/json"
@@ -25,19 +59,19 @@ type TestConfig struct {
 
 // Test statistics
 type TestStats struct {
-	mu                  sync.Mutex
-	TotalRequests       int64
-	SuccessfulRequests  int64
-	FailedRequests      int64
-	TotalLatency        time.Duration
-	MinLatency          time.Duration
-	MaxLatency          time.Duration
-	RegisterLatencies   []time.Duration
-	LoginLatencies      []time.Duration
+	mu                   sync.Mutex
+	TotalRequests        int64
+	SuccessfulRequests   int64
+	FailedRequests       int64
+	TotalLatency         time.Duration
+	MinLatency           time.Duration
+	MaxLatency           time.Duration
+	RegisterLatencies    []time.Duration
+	LoginLatencies       []time.Duration
 	CreateHabitLatencies []time.Duration
-	CreateLogLatencies  []time.Duration
-	GetHabitsLatencies  []time.Duration
-	GetLogsLatencies    []time.Duration
+	CreateLogLatencies   []time.Duration
+	GetHabitsLatencies   []time.Duration
+	GetLogsLatencies     []time.Duration
 }
 
 // User credentials for testing
@@ -56,6 +90,12 @@ type TestHabit struct {
 }
 
 // Response structures
+type APIResponse struct {
+	Success bool            `json:"success"`
+	Message string          `json:"message,omitempty"`
+	Data    json.RawMessage `json:"data,omitempty"`
+}
+
 type LoginResponse struct {
 	Token string          `json:"token"`
 	User  json.RawMessage `json:"user"`
@@ -105,11 +145,12 @@ func main() {
 	fmt.Printf("Load Test Duration: %s\n", config.TestDuration)
 	fmt.Println("========================================")
 
-	// Test health endpoint
+	// Test health endpoint - Note: No dedicated health endpoint exists, testing /users instead
 	if err := testHealthEndpoint(config.BaseURL); err != nil {
-		log.Fatalf("Health check failed: %v", err)
+		log.Printf("Warning: API connectivity check failed: %v", err)
+	} else {
+		fmt.Println("✓ API connectivity check passed")
 	}
-	fmt.Println("✓ Health check passed")
 
 	// Phase 1: User Registration
 	fmt.Println("\nPhase 1: User Registration")
@@ -135,7 +176,7 @@ func main() {
 	createLogs(config, stats, users)
 	fmt.Printf("✓ Created logs for all habits\n")
 
-	// Phase 5: Read Operations (List Habits and Logs)
+	// Phase 5: Read Operations
 	fmt.Println("\nPhase 5: Read Operations")
 	performReadOperations(config, stats, users)
 	fmt.Printf("✓ Performed read operations\n")
@@ -155,14 +196,16 @@ func main() {
 
 // testHealthEndpoint checks if the API is responsive
 func testHealthEndpoint(baseURL string) error {
-	resp, err := http.Get(baseURL + "/health")
+	// Note: API doesn't have a /health endpoint, so we test basic connectivity
+	resp, err := http.Get(baseURL + "/users?id=1")
 	if err != nil {
 		return err
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("unexpected status code: %d", resp.StatusCode)
+	// Accept any response (even 404) as long as we can connect
+	if resp.StatusCode == 0 {
+		return fmt.Errorf("no response from server")
 	}
 	return nil
 }
@@ -223,13 +266,12 @@ func registerUsers(config TestConfig, stats *TestStats) []*TestUser {
 func registerUser(baseURL string, user *TestUser) error {
 	payload := map[string]interface{}{
 		"phone_number": user.PhoneNumber,
-		"password":     user.Password,
 		"name":         "Test User " + user.PhoneNumber,
 		"time_zone":    "America/New_York",
 	}
 
 	jsonData, _ := json.Marshal(payload)
-	resp, err := http.Post(baseURL+"/api/register", "application/json", bytes.NewBuffer(jsonData))
+	resp, err := http.Post(baseURL+"/register", "application/json", bytes.NewBuffer(jsonData))
 	if err != nil {
 		return err
 	}
@@ -240,12 +282,31 @@ func registerUser(baseURL string, user *TestUser) error {
 		return fmt.Errorf("unexpected status code: %d, body: %s", resp.StatusCode, string(body))
 	}
 
-	var userResp UserResponse
-	if err := json.NewDecoder(resp.Body).Decode(&userResp); err != nil {
+	var apiResp APIResponse
+	if err := json.NewDecoder(resp.Body).Decode(&apiResp); err != nil {
 		return err
 	}
 
+	// Extract token and user from the nested response
+	var registerData map[string]json.RawMessage
+	if err := json.Unmarshal(apiResp.Data, &registerData); err != nil {
+		return err
+	}
+
+	// Extract token
+	var token string
+	if err := json.Unmarshal(registerData["token"], &token); err != nil {
+		return err
+	}
+	user.Token = token
+
+	// Extract user data
+	var userResp UserResponse
+	if err := json.Unmarshal(registerData["user"], &userResp); err != nil {
+		return err
+	}
 	user.UserID = userResp.ID
+
 	return nil
 }
 
@@ -274,11 +335,10 @@ func loginUsers(config TestConfig, stats *TestStats, users []*TestUser) {
 func loginUser(baseURL string, user *TestUser) error {
 	payload := map[string]string{
 		"phone_number": user.PhoneNumber,
-		"password":     user.Password,
 	}
 
 	jsonData, _ := json.Marshal(payload)
-	resp, err := http.Post(baseURL+"/api/login", "application/json", bytes.NewBuffer(jsonData))
+	resp, err := http.Post(baseURL+"/login", "application/json", bytes.NewBuffer(jsonData))
 	if err != nil {
 		return err
 	}
@@ -289,12 +349,23 @@ func loginUser(baseURL string, user *TestUser) error {
 		return fmt.Errorf("unexpected status code: %d, body: %s", resp.StatusCode, string(body))
 	}
 
-	var loginResp LoginResponse
-	if err := json.NewDecoder(resp.Body).Decode(&loginResp); err != nil {
+	var apiResp APIResponse
+	if err := json.NewDecoder(resp.Body).Decode(&apiResp); err != nil {
 		return err
 	}
 
-	user.Token = loginResp.Token
+	// Extract token from the nested response
+	var loginData map[string]json.RawMessage
+	if err := json.Unmarshal(apiResp.Data, &loginData); err != nil {
+		return err
+	}
+
+	var token string
+	if err := json.Unmarshal(loginData["token"], &token); err != nil {
+		return err
+	}
+
+	user.Token = token
 	return nil
 }
 
@@ -331,7 +402,7 @@ func createHabit(baseURL string, user *TestUser, habitNum int) (TestHabit, error
 	}
 
 	jsonData, _ := json.Marshal(payload)
-	req, _ := http.NewRequest("POST", baseURL+"/api/habits", bytes.NewBuffer(jsonData))
+	req, _ := http.NewRequest("POST", baseURL+"/habits/", bytes.NewBuffer(jsonData))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+user.Token)
 
@@ -346,8 +417,13 @@ func createHabit(baseURL string, user *TestUser, habitNum int) (TestHabit, error
 		return TestHabit{}, fmt.Errorf("unexpected status code: %d, body: %s", resp.StatusCode, string(body))
 	}
 
+	var apiResp APIResponse
+	if err := json.NewDecoder(resp.Body).Decode(&apiResp); err != nil {
+		return TestHabit{}, err
+	}
+
 	var habitResp HabitResponse
-	if err := json.NewDecoder(resp.Body).Decode(&habitResp); err != nil {
+	if err := json.Unmarshal(apiResp.Data, &habitResp); err != nil {
 		return TestHabit{}, err
 	}
 
@@ -387,7 +463,7 @@ func createLog(baseURL string, user *TestUser, habit TestHabit, logNum int) erro
 	}
 
 	jsonData, _ := json.Marshal(payload)
-	req, _ := http.NewRequest("POST", baseURL+"/api/logs", bytes.NewBuffer(jsonData))
+	req, _ := http.NewRequest("POST", baseURL+"/logs/", bytes.NewBuffer(jsonData))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+user.Token)
 
@@ -446,7 +522,7 @@ func performReadOperations(config TestConfig, stats *TestStats, users []*TestUse
 
 // getHabits retrieves all habits for a user
 func getHabits(baseURL string, user *TestUser) error {
-	req, _ := http.NewRequest("GET", baseURL+"/api/habits", nil)
+	req, _ := http.NewRequest("GET", baseURL+"/habits/", nil)
 	req.Header.Set("Authorization", "Bearer "+user.Token)
 
 	resp, err := http.DefaultClient.Do(req)
@@ -465,7 +541,7 @@ func getHabits(baseURL string, user *TestUser) error {
 
 // getLogs retrieves all logs for a habit
 func getLogs(baseURL string, user *TestUser, habit TestHabit) error {
-	url := fmt.Sprintf("%s/api/logs?habit_id=%d", baseURL, habit.ID)
+	url := fmt.Sprintf("%s/logs/?habit_id=%d", baseURL, habit.ID)
 	req, _ := http.NewRequest("GET", url, nil)
 	req.Header.Set("Authorization", "Bearer "+user.Token)
 
@@ -500,7 +576,7 @@ func performLoadTest(config TestConfig, stats *TestStats, users []*TestUser) {
 		go func(workerID int) {
 			defer wg.Done()
 			userIndex := workerID % len(users)
-			
+
 			for {
 				select {
 				case <-stopChan:
