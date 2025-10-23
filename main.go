@@ -281,18 +281,20 @@ type User struct {
 }
 
 type Habit struct {
-	ID          int64     `json:"id"`
-	UserID      int64     `json:"userId"`
-	Name        string    `json:"name"`
-	Description string    `json:"description"`
-	CreatedAt   time.Time `json:"createdAt"`
+	ID              int64         `json:"id"`
+	UserID          int64         `json:"userId"`
+	Name            string        `json:"name"`
+	Description     string        `json:"description"`
+	DurationSeconds sql.NullInt64 `json:"-"`
+	CreatedAt       time.Time     `json:"createdAt"`
 }
 
 type LogEntry struct {
-	ID        int64     `json:"id"`
-	HabitID   int64     `json:"habitId"`
-	Notes     string    `json:"notes"`
-	CreatedAt time.Time `json:"createdAt"`
+	ID              int64         `json:"id"`
+	HabitID         int64         `json:"habitId"`
+	Notes           string        `json:"notes"`
+	DurationSeconds sql.NullInt64 `json:"-"`
+	CreatedAt       time.Time     `json:"createdAt"`
 }
 
 // -------------------- Handlers --------------------
@@ -445,7 +447,7 @@ func (a *Application) handleHabitsCollection(w http.ResponseWriter, r *http.Requ
 	userID, _ := getUserIDFromContext(r.Context())
 	switch r.Method {
 	case http.MethodGet:
-		rows, err := a.Database.Query(`SELECT id, user_id, name, description, created_at FROM habits WHERE user_id = ? ORDER BY id DESC`, userID)
+		rows, err := a.Database.Query(`SELECT id, user_id, name, description, duration_seconds, created_at FROM habits WHERE user_id = ? ORDER BY id DESC`, userID)
 		if err != nil {
 			log.Printf("habits list error: %v", err)
 			writeJSONError(w, http.StatusInternalServerError, "failed to list habits")
@@ -458,7 +460,7 @@ func (a *Application) handleHabitsCollection(w http.ResponseWriter, r *http.Requ
 		_, _ = w.Write([]byte("["))
 		for rows.Next() {
 			var h Habit
-			if err := rows.Scan(&h.ID, &h.UserID, &h.Name, &h.Description, &h.CreatedAt); err != nil {
+			if err := rows.Scan(&h.ID, &h.UserID, &h.Name, &h.Description, &h.DurationSeconds, &h.CreatedAt); err != nil {
 				continue
 			}
 			if !first {
@@ -466,14 +468,19 @@ func (a *Application) handleHabitsCollection(w http.ResponseWriter, r *http.Requ
 			} else {
 				first = false
 			}
-			_, _ = w.Write([]byte(fmt.Sprintf(`{"id":%d,"userId":%d,"name":"%s","description":"%s","createdAt":"%s"}`,
-				h.ID, h.UserID, escapeForJSON(h.Name), escapeForJSON(h.Description), h.CreatedAt.Format(time.RFC3339))))
+			dur := "null"
+			if h.DurationSeconds.Valid {
+				dur = fmt.Sprintf("%d", h.DurationSeconds.Int64)
+			}
+			_, _ = w.Write([]byte(fmt.Sprintf(`{"id":%d,"userId":%d,"name":"%s","description":"%s","durationSeconds":%s,"createdAt":"%s"}`,
+				h.ID, h.UserID, escapeForJSON(h.Name), escapeForJSON(h.Description), dur, h.CreatedAt.Format(time.RFC3339))))
 		}
 		_, _ = w.Write([]byte("]"))
 	case http.MethodPost:
 		type payload struct {
-			Name        string `json:"name"`
-			Description string `json:"description"`
+			Name            string `json:"name"`
+			Description     string `json:"description"`
+			DurationSeconds *int   `json:"durationSeconds"`
 		}
 		var p payload
 		if err := jsonDecodeStrict(r, &p); err != nil {
@@ -485,7 +492,13 @@ func (a *Application) handleHabitsCollection(w http.ResponseWriter, r *http.Requ
 			return
 		}
 		now := time.Now().UTC()
-		res, err := a.Database.Exec(`INSERT INTO habits (user_id, name, description, created_at) VALUES (?, ?, ?, ?)`, userID, p.Name, p.Description, now)
+		var durationArg any
+		if p.DurationSeconds != nil {
+			durationArg = *p.DurationSeconds
+		} else {
+			durationArg = nil
+		}
+		res, err := a.Database.Exec(`INSERT INTO habits (user_id, name, description, duration_seconds, created_at) VALUES (?, ?, ?, ?, ?)`, userID, p.Name, p.Description, durationArg, now)
 		if err != nil {
 			log.Printf("habit insert error: %v", err)
 			writeJSONError(w, http.StatusInternalServerError, "failed to create habit")
@@ -524,26 +537,31 @@ func (a *Application) handleHabitByID(w http.ResponseWriter, r *http.Request) {
 	}
 	switch r.Method {
 	case http.MethodGet:
-		row := a.Database.QueryRow(`SELECT id, user_id, name, description, created_at FROM habits WHERE id = ?`, id)
+		row := a.Database.QueryRow(`SELECT id, user_id, name, description, duration_seconds, created_at FROM habits WHERE id = ?`, id)
 		var h Habit
-		if err := row.Scan(&h.ID, &h.UserID, &h.Name, &h.Description, &h.CreatedAt); err != nil {
+		if err := row.Scan(&h.ID, &h.UserID, &h.Name, &h.Description, &h.DurationSeconds, &h.CreatedAt); err != nil {
 			writeJSONError(w, http.StatusInternalServerError, "failed to fetch habit")
 			return
 		}
-		writeJSON(w, http.StatusOK, fmt.Sprintf(`{"id":%d,"userId":%d,"name":"%s","description":"%s","createdAt":"%s"}`,
-			h.ID, h.UserID, escapeForJSON(h.Name), escapeForJSON(h.Description), h.CreatedAt.Format(time.RFC3339)))
+		dur := "null"
+		if h.DurationSeconds.Valid {
+			dur = fmt.Sprintf("%d", h.DurationSeconds.Int64)
+		}
+		writeJSON(w, http.StatusOK, fmt.Sprintf(`{"id":%d,"userId":%d,"name":"%s","description":"%s","durationSeconds":%s,"createdAt":"%s"}`,
+			h.ID, h.UserID, escapeForJSON(h.Name), escapeForJSON(h.Description), dur, h.CreatedAt.Format(time.RFC3339)))
 	case http.MethodPut:
 		type payload struct {
-			Name        *string `json:"name"`
-			Description *string `json:"description"`
+			Name            *string `json:"name"`
+			Description     *string `json:"description"`
+			DurationSeconds *int    `json:"durationSeconds"`
 		}
 		var p payload
 		if err := jsonDecodeStrict(r, &p); err != nil {
 			writeJSONError(w, http.StatusBadRequest, "invalid request body")
 			return
 		}
-		fields := make([]string, 0, 2)
-		args := make([]any, 0, 3)
+		fields := make([]string, 0, 3)
+		args := make([]any, 0, 4)
 		if p.Name != nil {
 			fields = append(fields, "name = ?")
 			args = append(args, *p.Name)
@@ -551,6 +569,10 @@ func (a *Application) handleHabitByID(w http.ResponseWriter, r *http.Request) {
 		if p.Description != nil {
 			fields = append(fields, "description = ?")
 			args = append(args, *p.Description)
+		}
+		if p.DurationSeconds != nil {
+			fields = append(fields, "duration_seconds = ?")
+			args = append(args, *p.DurationSeconds)
 		}
 		if len(fields) == 0 {
 			writeJSONError(w, http.StatusBadRequest, "no fields to update")
@@ -595,7 +617,7 @@ func (a *Application) handleLogsCollection(w http.ResponseWriter, r *http.Reques
 				writeJSONError(w, http.StatusForbidden, "cannot access other users' habits")
 				return
 			}
-			rows, err := a.Database.Query(`SELECT id, habit_id, notes, created_at FROM logs WHERE habit_id = ? ORDER BY id DESC`, habitID)
+			rows, err := a.Database.Query(`SELECT id, habit_id, notes, duration_seconds, created_at FROM logs WHERE habit_id = ? ORDER BY id DESC`, habitID)
 			if err != nil {
 				log.Printf("logs list error: %v", err)
 				writeJSONError(w, http.StatusInternalServerError, "failed to list logs")
@@ -608,7 +630,7 @@ func (a *Application) handleLogsCollection(w http.ResponseWriter, r *http.Reques
 			_, _ = w.Write([]byte("["))
 			for rows.Next() {
 				var le LogEntry
-				if err := rows.Scan(&le.ID, &le.HabitID, &le.Notes, &le.CreatedAt); err != nil {
+				if err := rows.Scan(&le.ID, &le.HabitID, &le.Notes, &le.DurationSeconds, &le.CreatedAt); err != nil {
 					continue
 				}
 				if !first {
@@ -616,14 +638,18 @@ func (a *Application) handleLogsCollection(w http.ResponseWriter, r *http.Reques
 				} else {
 					first = false
 				}
-				_, _ = w.Write([]byte(fmt.Sprintf(`{"id":%d,"habitId":%d,"notes":"%s","createdAt":"%s"}`,
-					le.ID, le.HabitID, escapeForJSON(le.Notes), le.CreatedAt.Format(time.RFC3339))))
+				ldur := "null"
+				if le.DurationSeconds.Valid {
+					ldur = fmt.Sprintf("%d", le.DurationSeconds.Int64)
+				}
+				_, _ = w.Write([]byte(fmt.Sprintf(`{"id":%d,"habitId":%d,"notes":"%s","durationSeconds":%s,"createdAt":"%s"}`,
+					le.ID, le.HabitID, escapeForJSON(le.Notes), ldur, le.CreatedAt.Format(time.RFC3339))))
 			}
 			_, _ = w.Write([]byte("]"))
 			return
 		}
 		// No habit filter: list all logs for user's habits
-		rows, err := a.Database.Query(`SELECT l.id, l.habit_id, l.notes, l.created_at FROM logs l JOIN habits h ON h.id = l.habit_id WHERE h.user_id = ? ORDER BY l.id DESC`, userID)
+		rows, err := a.Database.Query(`SELECT l.id, l.habit_id, l.notes, l.duration_seconds, l.created_at FROM logs l JOIN habits h ON h.id = l.habit_id WHERE h.user_id = ? ORDER BY l.id DESC`, userID)
 		if err != nil {
 			log.Printf("logs list error: %v", err)
 			writeJSONError(w, http.StatusInternalServerError, "failed to list logs")
@@ -636,7 +662,7 @@ func (a *Application) handleLogsCollection(w http.ResponseWriter, r *http.Reques
 		_, _ = w.Write([]byte("["))
 		for rows.Next() {
 			var le LogEntry
-			if err := rows.Scan(&le.ID, &le.HabitID, &le.Notes, &le.CreatedAt); err != nil {
+			if err := rows.Scan(&le.ID, &le.HabitID, &le.Notes, &le.DurationSeconds, &le.CreatedAt); err != nil {
 				continue
 			}
 			if !first {
@@ -644,14 +670,19 @@ func (a *Application) handleLogsCollection(w http.ResponseWriter, r *http.Reques
 			} else {
 				first = false
 			}
-			_, _ = w.Write([]byte(fmt.Sprintf(`{"id":%d,"habitId":%d,"notes":"%s","createdAt":"%s"}`,
-				le.ID, le.HabitID, escapeForJSON(le.Notes), le.CreatedAt.Format(time.RFC3339))))
+			ldur := "null"
+			if le.DurationSeconds.Valid {
+				ldur = fmt.Sprintf("%d", le.DurationSeconds.Int64)
+			}
+			_, _ = w.Write([]byte(fmt.Sprintf(`{"id":%d,"habitId":%d,"notes":"%s","durationSeconds":%s,"createdAt":"%s"}`,
+				le.ID, le.HabitID, escapeForJSON(le.Notes), ldur, le.CreatedAt.Format(time.RFC3339))))
 		}
 		_, _ = w.Write([]byte("]"))
 	case http.MethodPost:
 		type payload struct {
-			HabitID int64  `json:"habitId"`
-			Notes   string `json:"notes"`
+			HabitID         int64  `json:"habitId"`
+			Notes           string `json:"notes"`
+			DurationSeconds *int   `json:"durationSeconds"`
 		}
 		var p payload
 		if err := jsonDecodeStrict(r, &p); err != nil {
@@ -662,10 +693,11 @@ func (a *Application) handleLogsCollection(w http.ResponseWriter, r *http.Reques
 			writeJSONError(w, http.StatusBadRequest, "habitId is required")
 			return
 		}
-		// Ownership verify
+		// Ownership verify and fetch habit duration requirement
 		var ownerID int64
-		row := a.Database.QueryRow(`SELECT user_id FROM habits WHERE id = ?`, p.HabitID)
-		if err := row.Scan(&ownerID); err != nil {
+		var habitDur sql.NullInt64
+		row := a.Database.QueryRow(`SELECT user_id, duration_seconds FROM habits WHERE id = ?`, p.HabitID)
+		if err := row.Scan(&ownerID, &habitDur); err != nil {
 			writeJSONError(w, http.StatusNotFound, "habit not found")
 			return
 		}
@@ -673,8 +705,18 @@ func (a *Application) handleLogsCollection(w http.ResponseWriter, r *http.Reques
 			writeJSONError(w, http.StatusForbidden, "cannot access other users' habits")
 			return
 		}
+		if habitDur.Valid && p.DurationSeconds == nil {
+			writeJSONError(w, http.StatusBadRequest, "durationSeconds is required for this habit")
+			return
+		}
 		now := time.Now().UTC()
-		res, err := a.Database.Exec(`INSERT INTO logs (habit_id, notes, created_at) VALUES (?, ?, ?)`, p.HabitID, p.Notes, now)
+		var logDuration any
+		if p.DurationSeconds != nil {
+			logDuration = *p.DurationSeconds
+		} else {
+			logDuration = nil
+		}
+		res, err := a.Database.Exec(`INSERT INTO logs (habit_id, notes, duration_seconds, created_at) VALUES (?, ?, ?, ?)`, p.HabitID, p.Notes, logDuration, now)
 		if err != nil {
 			log.Printf("log insert error: %v", err)
 			writeJSONError(w, http.StatusInternalServerError, "failed to create log")
@@ -718,28 +760,46 @@ func (a *Application) handleLogByID(w http.ResponseWriter, r *http.Request) {
 	}
 	switch r.Method {
 	case http.MethodGet:
-		row := a.Database.QueryRow(`SELECT id, habit_id, notes, created_at FROM logs WHERE id = ?`, id)
+		row := a.Database.QueryRow(`SELECT id, habit_id, notes, duration_seconds, created_at FROM logs WHERE id = ?`, id)
 		var le LogEntry
-		if err := row.Scan(&le.ID, &le.HabitID, &le.Notes, &le.CreatedAt); err != nil {
+		if err := row.Scan(&le.ID, &le.HabitID, &le.Notes, &le.DurationSeconds, &le.CreatedAt); err != nil {
 			writeJSONError(w, http.StatusInternalServerError, "failed to fetch log")
 			return
 		}
-		writeJSON(w, http.StatusOK, fmt.Sprintf(`{"id":%d,"habitId":%d,"notes":"%s","createdAt":"%s"}`,
-			le.ID, le.HabitID, escapeForJSON(le.Notes), le.CreatedAt.Format(time.RFC3339)))
+		ldur := "null"
+		if le.DurationSeconds.Valid {
+			ldur = fmt.Sprintf("%d", le.DurationSeconds.Int64)
+		}
+		writeJSON(w, http.StatusOK, fmt.Sprintf(`{"id":%d,"habitId":%d,"notes":"%s","durationSeconds":%s,"createdAt":"%s"}`,
+			le.ID, le.HabitID, escapeForJSON(le.Notes), ldur, le.CreatedAt.Format(time.RFC3339)))
 	case http.MethodPut:
 		type payload struct {
-			Notes *string `json:"notes"`
+			Notes           *string `json:"notes"`
+			DurationSeconds *int    `json:"durationSeconds"`
 		}
 		var p payload
 		if err := jsonDecodeStrict(r, &p); err != nil {
 			writeJSONError(w, http.StatusBadRequest, "invalid request body")
 			return
 		}
-		if p.Notes == nil {
+		if p.Notes == nil && p.DurationSeconds == nil {
 			writeJSONError(w, http.StatusBadRequest, "no fields to update")
 			return
 		}
-		if _, err := a.Database.Exec(`UPDATE logs SET notes = ? WHERE id = ?`, *p.Notes, id); err != nil {
+		// Build dynamic update
+		fields := make([]string, 0, 2)
+		args := make([]any, 0, 3)
+		if p.Notes != nil {
+			fields = append(fields, "notes = ?")
+			args = append(args, *p.Notes)
+		}
+		if p.DurationSeconds != nil {
+			fields = append(fields, "duration_seconds = ?")
+			args = append(args, *p.DurationSeconds)
+		}
+		args = append(args, id)
+		q := "UPDATE logs SET " + joinComma(fields) + " WHERE id = ?"
+		if _, err := a.Database.Exec(q, args...); err != nil {
 			log.Printf("log update error: %v", err)
 			writeJSONError(w, http.StatusInternalServerError, "failed to update log")
 			return
