@@ -25,19 +25,19 @@ type TestConfig struct {
 
 // Test statistics
 type TestStats struct {
-	mu                  sync.Mutex
-	TotalRequests       int64
-	SuccessfulRequests  int64
-	FailedRequests      int64
-	TotalLatency        time.Duration
-	MinLatency          time.Duration
-	MaxLatency          time.Duration
-	RegisterLatencies   []time.Duration
-	LoginLatencies      []time.Duration
+	mu                   sync.Mutex
+	TotalRequests        int64
+	SuccessfulRequests   int64
+	FailedRequests       int64
+	TotalLatency         time.Duration
+	MinLatency           time.Duration
+	MaxLatency           time.Duration
+	RegisterLatencies    []time.Duration
+	LoginLatencies       []time.Duration
 	CreateHabitLatencies []time.Duration
-	CreateLogLatencies  []time.Duration
-	GetHabitsLatencies  []time.Duration
-	GetLogsLatencies    []time.Duration
+	CreateLogLatencies   []time.Duration
+	GetHabitsLatencies   []time.Duration
+	GetLogsLatencies     []time.Duration
 }
 
 // User credentials for testing
@@ -229,7 +229,7 @@ func registerUser(baseURL string, user *TestUser) error {
 	}
 
 	jsonData, _ := json.Marshal(payload)
-	resp, err := http.Post(baseURL+"/api/register", "application/json", bytes.NewBuffer(jsonData))
+	resp, err := http.Post(baseURL+"/api/users", "application/json", bytes.NewBuffer(jsonData))
 	if err != nil {
 		return err
 	}
@@ -273,8 +273,8 @@ func loginUsers(config TestConfig, stats *TestStats, users []*TestUser) {
 // loginUser logs in a single user
 func loginUser(baseURL string, user *TestUser) error {
 	payload := map[string]string{
-		"phone_number": user.PhoneNumber,
-		"password":     user.Password,
+		"name":     "Test User " + user.PhoneNumber,
+		"password": user.Password,
 	}
 
 	jsonData, _ := json.Marshal(payload)
@@ -465,7 +465,7 @@ func getHabits(baseURL string, user *TestUser) error {
 
 // getLogs retrieves all logs for a habit
 func getLogs(baseURL string, user *TestUser, habit TestHabit) error {
-	url := fmt.Sprintf("%s/api/logs?habit_id=%d", baseURL, habit.ID)
+	url := fmt.Sprintf("%s/api/habits/%d/logs", baseURL, habit.ID)
 	req, _ := http.NewRequest("GET", url, nil)
 	req.Header.Set("Authorization", "Bearer "+user.Token)
 
@@ -500,7 +500,7 @@ func performLoadTest(config TestConfig, stats *TestStats, users []*TestUser) {
 		go func(workerID int) {
 			defer wg.Done()
 			userIndex := workerID % len(users)
-			
+
 			for {
 				select {
 				case <-stopChan:
