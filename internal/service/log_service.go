@@ -50,6 +50,11 @@ func (s *logService) Create(ctx context.Context, userID string, req *models.Crea
 		return nil, fmt.Errorf("unauthorized: habit does not belong to user")
 	}
 
+	// Validate duration based on habit requirements
+	if err := validator.ValidateLogDuration(habit, req.Duration); err != nil {
+		return nil, fmt.Errorf("validation error: %w", err)
+	}
+
 	// Generate log ID
 	id := auth.GenerateID()
 
@@ -58,6 +63,7 @@ func (s *logService) Create(ctx context.Context, userID string, req *models.Crea
 		ID:        id,
 		HabitID:   req.HabitID,
 		Notes:     req.Notes,
+		Duration:  req.Duration,
 		CreatedAt: time.Now().UTC(),
 	}
 
@@ -118,6 +124,13 @@ func (s *logService) Update(ctx context.Context, userID, id string, req *models.
 	// Update fields if provided
 	if req.Notes != nil {
 		log.Notes = *req.Notes
+	}
+	if req.Duration != nil {
+		// Validate duration based on habit requirements
+		if err := validator.ValidateLogDuration(habit, req.Duration); err != nil {
+			return nil, fmt.Errorf("validation error: %w", err)
+		}
+		log.Duration = req.Duration
 	}
 
 	// Save to repository

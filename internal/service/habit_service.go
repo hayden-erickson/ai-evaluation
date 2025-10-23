@@ -46,6 +46,7 @@ func (s *habitService) Create(ctx context.Context, userID string, req *models.Cr
 		UserID:      userID,
 		Name:        req.Name,
 		Description: req.Description,
+		Duration:    req.Duration,
 		CreatedAt:   time.Now().UTC(),
 	}
 
@@ -104,6 +105,12 @@ func (s *habitService) Update(ctx context.Context, userID, id string, req *model
 	}
 	if req.Description != nil {
 		habit.Description = *req.Description
+	}
+	if req.Duration != nil {
+		if *req.Duration < 0 {
+			return nil, fmt.Errorf("duration must be non-negative")
+		}
+		habit.Duration = req.Duration
 	}
 
 	// Save to repository

@@ -30,14 +30,15 @@ func NewHabitRepository(db *sql.DB) HabitRepository {
 // Create inserts a new habit into the database
 func (r *habitRepository) Create(ctx context.Context, habit *models.Habit) error {
 	query := `
-		INSERT INTO habits (id, user_id, name, description, created_at)
-		VALUES (?, ?, ?, ?, ?)
+		INSERT INTO habits (id, user_id, name, description, duration, created_at)
+		VALUES (?, ?, ?, ?, ?, ?)
 	`
 	_, err := r.db.ExecContext(ctx, query,
 		habit.ID,
 		habit.UserID,
 		habit.Name,
 		habit.Description,
+		habit.Duration,
 		habit.CreatedAt,
 	)
 	if err != nil {
@@ -49,7 +50,7 @@ func (r *habitRepository) Create(ctx context.Context, habit *models.Habit) error
 // GetByID retrieves a habit by its ID
 func (r *habitRepository) GetByID(ctx context.Context, id string) (*models.Habit, error) {
 	query := `
-		SELECT id, user_id, name, description, created_at
+		SELECT id, user_id, name, description, duration, created_at
 		FROM habits
 		WHERE id = ?
 	`
@@ -59,6 +60,7 @@ func (r *habitRepository) GetByID(ctx context.Context, id string) (*models.Habit
 		&habit.UserID,
 		&habit.Name,
 		&habit.Description,
+		&habit.Duration,
 		&habit.CreatedAt,
 	)
 	if err == sql.ErrNoRows {
@@ -74,12 +76,13 @@ func (r *habitRepository) GetByID(ctx context.Context, id string) (*models.Habit
 func (r *habitRepository) Update(ctx context.Context, habit *models.Habit) error {
 	query := `
 		UPDATE habits
-		SET name = ?, description = ?
+		SET name = ?, description = ?, duration = ?
 		WHERE id = ?
 	`
 	result, err := r.db.ExecContext(ctx, query,
 		habit.Name,
 		habit.Description,
+		habit.Duration,
 		habit.ID,
 	)
 	if err != nil {
@@ -121,7 +124,7 @@ func (r *habitRepository) Delete(ctx context.Context, id string) error {
 // ListByUserID retrieves all habits for a specific user
 func (r *habitRepository) ListByUserID(ctx context.Context, userID string) ([]*models.Habit, error) {
 	query := `
-		SELECT id, user_id, name, description, created_at
+		SELECT id, user_id, name, description, duration, created_at
 		FROM habits
 		WHERE user_id = ?
 		ORDER BY created_at DESC
@@ -140,6 +143,7 @@ func (r *habitRepository) ListByUserID(ctx context.Context, userID string) ([]*m
 			&habit.UserID,
 			&habit.Name,
 			&habit.Description,
+			&habit.Duration,
 			&habit.CreatedAt,
 		)
 		if err != nil {

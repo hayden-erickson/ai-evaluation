@@ -42,6 +42,11 @@ func ValidateCreateHabitRequest(req *models.CreateHabitRequest) error {
 		return fmt.Errorf("name is required")
 	}
 
+	// Validate duration if provided
+	if req.Duration != nil && *req.Duration < 0 {
+		return fmt.Errorf("duration must be non-negative")
+	}
+
 	return nil
 }
 

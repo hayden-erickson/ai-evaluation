@@ -8,6 +8,7 @@ type Habit struct {
 	UserID      string    `json:"user_id"`
 	Name        string    `json:"name"`
 	Description string    `json:"description,omitempty"`
+	Duration    *int      `json:"duration,omitempty"` // Duration in seconds, optional
 	CreatedAt   time.Time `json:"created_at"`
 }
 
@@ -15,10 +16,12 @@ type Habit struct {
 type CreateHabitRequest struct {
 	Name        string `json:"name"`
 	Description string `json:"description,omitempty"`
+	Duration    *int   `json:"duration,omitempty"` // Duration in seconds, optional
 }
 
 // UpdateHabitRequest represents the request body for updating a habit
 type UpdateHabitRequest struct {
 	Name        *string `json:"name,omitempty"`
 	Description *string `json:"description,omitempty"`
+	Duration    *int    `json:"duration,omitempty"` // Duration in seconds, optional
 }
