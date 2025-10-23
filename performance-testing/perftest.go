@@ -25,19 +25,19 @@ type TestConfig struct {
 
 // Test statistics
 type TestStats struct {
-	mu                  sync.Mutex
-	TotalRequests       int64
-	SuccessfulRequests  int64
-	FailedRequests      int64
-	TotalLatency        time.Duration
-	MinLatency          time.Duration
-	MaxLatency          time.Duration
-	RegisterLatencies   []time.Duration
-	LoginLatencies      []time.Duration
+	mu                   sync.Mutex
+	TotalRequests        int64
+	SuccessfulRequests   int64
+	FailedRequests       int64
+	TotalLatency         time.Duration
+	MinLatency           time.Duration
+	MaxLatency           time.Duration
+	RegisterLatencies    []time.Duration
+	LoginLatencies       []time.Duration
 	CreateHabitLatencies []time.Duration
-	CreateLogLatencies  []time.Duration
-	GetHabitsLatencies  []time.Duration
-	GetLogsLatencies    []time.Duration
+	CreateLogLatencies   []time.Duration
+	GetHabitsLatencies   []time.Duration
+	GetLogsLatencies     []time.Duration
 }
 
 // User credentials for testing
@@ -229,7 +229,7 @@ func registerUser(baseURL string, user *TestUser) error {
 	}
 
 	jsonData, _ := json.Marshal(payload)
-	resp, err := http.Post(baseURL+"/api/register", "application/json", bytes.NewBuffer(jsonData))
+	resp, err := http.Post(baseURL+"/users/register", "application/json", bytes.NewBuffer(jsonData))
 	if err != nil {
 		return err
 	}
@@ -278,7 +278,7 @@ func loginUser(baseURL string, user *TestUser) error {
 	}
 
 	jsonData, _ := json.Marshal(payload)
-	resp, err := http.Post(baseURL+"/api/login", "application/json", bytes.NewBuffer(jsonData))
+	resp, err := http.Post(baseURL+"/users/login", "application/json", bytes.NewBuffer(jsonData))
 	if err != nil {
 		return err
 	}
@@ -331,7 +331,7 @@ func createHabit(baseURL string, user *TestUser, habitNum int) (TestHabit, error
 	}
 
 	jsonData, _ := json.Marshal(payload)
-	req, _ := http.NewRequest("POST", baseURL+"/api/habits", bytes.NewBuffer(jsonData))
+	req, _ := http.NewRequest("POST", baseURL+"/habits", bytes.NewBuffer(jsonData))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+user.Token)
 
@@ -387,7 +387,7 @@ func createLog(baseURL string, user *TestUser, habit TestHabit, logNum int) erro
 	}
 
 	jsonData, _ := json.Marshal(payload)
-	req, _ := http.NewRequest("POST", baseURL+"/api/logs", bytes.NewBuffer(jsonData))
+	req, _ := http.NewRequest("POST", fmt.Sprintf("%s/habits/%d/logs", baseURL, habit.ID), bytes.NewBuffer(jsonData))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+user.Token)
 
@@ -446,7 +446,7 @@ func performReadOperations(config TestConfig, stats *TestStats, users []*TestUse
 
 // getHabits retrieves all habits for a user
 func getHabits(baseURL string, user *TestUser) error {
-	req, _ := http.NewRequest("GET", baseURL+"/api/habits", nil)
+	req, _ := http.NewRequest("GET", baseURL+"/habits", nil)
 	req.Header.Set("Authorization", "Bearer "+user.Token)
 
 	resp, err := http.DefaultClient.Do(req)
@@ -465,7 +465,7 @@ func getHabits(baseURL string, user *TestUser) error {
 
 // getLogs retrieves all logs for a habit
 func getLogs(baseURL string, user *TestUser, habit TestHabit) error {
-	url := fmt.Sprintf("%s/api/logs?habit_id=%d", baseURL, habit.ID)
+	url := fmt.Sprintf("%s/habits/%d/logs", baseURL, habit.ID)
 	req, _ := http.NewRequest("GET", url, nil)
 	req.Header.Set("Authorization", "Bearer "+user.Token)
 
@@ -500,7 +500,7 @@ func performLoadTest(config TestConfig, stats *TestStats, users []*TestUser) {
 		go func(workerID int) {
 			defer wg.Done()
 			userIndex := workerID % len(users)
-			
+
 			for {
 				select {
 				case <-stopChan:
