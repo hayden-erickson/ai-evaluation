@@ -50,3 +50,10 @@ Thumbs.db
 # Temporary files
 tmp/
 temp/
+
+# Node modules and build artifacts
+node_modules/
+frontend/node_modules/
+frontend/build/
+.npm
+.eslintcache

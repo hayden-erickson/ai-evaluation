@@ -5,6 +5,7 @@ A RESTful API built in Go for tracking user habits with JWT-based authentication
 ## Features
 
 - **JWT-based authentication** - Secure token-based authentication
+- **React UI** - Modern, minimal web interface for habit tracking with streak visualization
 - **Input validation** - Comprehensive request validation for all endpoints
 - **Error logging** - All errors are logged with appropriate context
 - **HTTP status codes** - Proper error responses with meaningful messages
@@ -28,11 +29,13 @@ The application follows a clean, modular architecture:
 - **`/config`** - Database configuration and migrations
 - **`/utils`** - Utility functions (JWT, password hashing)
 - **`/migrations`** - SQL migration files
+- **`/frontend`** - React-based web UI for habit tracking
 
 ## Prerequisites
 
 - Go 1.21 or higher
 - SQLite3
+- Node.js 14 or higher (for frontend development)
 
 ## Installation
 
@@ -56,11 +59,49 @@ export DB_PATH=habits.db            # Default: habits.db
 
 ## Running the Application
 
+### Backend Only
+
 ```bash
 go run main.go
 ```
 
 The server will start on port 8080 (or the port specified in the PORT environment variable).
+
+### Full Stack (Backend + Frontend)
+
+1. Build the frontend:
+```bash
+cd frontend
+npm install
+npm run build
+cd ..
+```
+
+2. Start the backend (which will serve the frontend):
+```bash
+go run main.go
+```
+
+3. Open your browser to [http://localhost:8080](http://localhost:8080)
+
+The backend will serve both the API and the React frontend UI.
+
+### Frontend Development Mode
+
+For frontend development with hot reload:
+
+1. Start the backend:
+```bash
+go run main.go
+```
+
+2. In a separate terminal, start the frontend dev server:
+```bash
+cd frontend
+npm start
+```
+
+The frontend will open at [http://localhost:3000](http://localhost:3000) and proxy API requests to the backend at port 8080.
 
 ## API Endpoints
 
