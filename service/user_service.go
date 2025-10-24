@@ -11,7 +11,7 @@ import (
 
 // UserService defines the interface for user business logic
 type UserService interface {
-	Register(req *models.CreateUserRequest) (*models.User, error)
+	Register(req *models.CreateUserRequest) (*models.LoginResponse, error)
 	Login(req *models.LoginRequest) (*models.LoginResponse, error)
 	GetUser(id int64) (*models.User, error)
 	UpdateUser(id int64, req *models.UpdateUserRequest) (*models.User, error)
@@ -34,8 +34,8 @@ func NewUserService(repo repository.UserRepository, jwtManager *utils.JWTManager
 	}
 }
 
-// Register registers a new user
-func (s *userService) Register(req *models.CreateUserRequest) (*models.User, error) {
+// Register registers a new user and returns a login response with JWT token
+func (s *userService) Register(req *models.CreateUserRequest) (*models.LoginResponse, error) {
 	// Validate the request
 	if err := req.Validate(); err != nil {
 		return nil, fmt.Errorf("validation failed: %w", err)
@@ -59,7 +59,16 @@ func (s *userService) Register(req *models.CreateUserRequest) (*models.User, err
 		return nil, fmt.Errorf("failed to create user: %w", err)
 	}
 
-	return user, nil
+	// Generate a JWT token (24 hours expiration)
+	token, err := s.jwtManager.GenerateToken(user.ID, 24*time.Hour)
+	if err != nil {
+		return nil, fmt.Errorf("failed to generate token: %w", err)
+	}
+
+	return &models.LoginResponse{
+		Token: token,
+		User:  *user,
+	}, nil
 }
 
 // Login authenticates a user and returns a JWT token

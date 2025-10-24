@@ -141,6 +141,30 @@ func main() {
 		w.Write([]byte("OK"))
 	})
 
+	// Serve static files from frontend/build directory
+	fs := http.FileServer(http.Dir("./frontend/build"))
+	mux.Handle("/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// If the request is for an API endpoint, skip static file serving
+		if len(r.URL.Path) >= 4 && r.URL.Path[:4] == "/api" {
+			http.NotFound(w, r)
+			return
+		}
+		if len(r.URL.Path) >= 6 && (r.URL.Path[:6] == "/users" || r.URL.Path[:6] == "/habit" || r.URL.Path[:5] == "/logs") {
+			http.NotFound(w, r)
+			return
+		}
+		if r.URL.Path == "/health" {
+			http.NotFound(w, r)
+			return
+		}
+		// Try to serve the static file, otherwise serve index.html for client-side routing
+		if _, err := http.Dir("./frontend/build").Open(r.URL.Path); err != nil {
+			http.ServeFile(w, r, "./frontend/build/index.html")
+		} else {
+			fs.ServeHTTP(w, r)
+		}
+	}))
+
 	// Apply middleware to the mux
 	handler := middleware.LoggingMiddleware(middleware.SecurityHeadersMiddleware(mux))
 
