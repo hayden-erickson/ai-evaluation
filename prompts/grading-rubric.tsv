@@ -1,0 +1,25 @@
+Code Quality	1 = Poor (buggy, inconsistent)	2 = Fair (some bugs, inconsistent style)	3 = Average (mostly correct, some style issues)	4 = Good (clean, mostly idiomatic)	5 = Excellent (robust, idiomatic, clean)
+Readability	1 = Hard to read	2 = Somewhat readable	3 = Average readability	4 = Clear	5 = Very clear and well-commented
+Security Awareness	1 = No security features	2 = Minimal security	3 = Some security	4 = Good security	5 = Secure by default
+Coverage of Requirements	1 = <40% features implemented	2 = 40–60%	3 = 60–80%	4 = 80–99%	5 = 100%
+
+Code Quality Units					
+Aspect	Idiomatic Practice				
+Naming Conventions	Use short, descriptive names (err, buf, req). Exported names are capitalized.				
+Error Handling	Use 'if err != nil' consistently. Avoid deep nesting. Return early on error.				
+Code Structure	Keep functions short and focused. Prefer composition over inheritance.				
+Package Usage	Use standard library where possible (net/http, context, log).				
+Formatting	Use gofmt or goimports to enforce consistent formatting.				
+Concurrency	Use goroutines and channels appropriately. Avoid shared memory when possible.				
+Interfaces	Define small interfaces. Use implicit implementation.				
+Comments	Use comments for exported functions/types. Avoid redundant comments.				
+Testing	Use *_test.go files with testing package. Keep tests simple and focused.				
+Avoid Overengineering	Prefer simple solutions. Avoid unnecessary abstractions or patterns.				
+					
+					
+Dimension	Score	Description	Examples		
+Security Awareness	1	No Security Features	No authentication, no validation, secrets exposed, open endpoints		
+Security Awareness	2	Minimal Security	API key mentioned but not implemented, secrets in plain text, no secure headers		
+Security Awareness	3	Some Security	Basic authentication, no input validation, secrets hardcoded, no rate limiting		
+Security Awareness	4	Good Security	API key authentication, basic validation, environment-based secrets, secure endpoints		
+Security Awareness	5	Secure by Default	Strong security practices, input validation, RBAC, HTTPS, secure headers, Kubernetes secrets		
