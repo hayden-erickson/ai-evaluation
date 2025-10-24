@@ -54,10 +54,25 @@ func (h *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Return the created user
+	// Log the user in after successful registration to get a token
+	loginReq := models.LoginRequest{
+		PhoneNumber: req.PhoneNumber,
+		Password:    req.Password,
+	}
+	loginResp, err := h.service.Login(&loginReq)
+	if err != nil {
+		log.Printf("Failed to login after registration: %v", err)
+		// Still return the user, but without token
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		json.NewEncoder(w).Encode(user)
+		return
+	}
+
+	// Return the login response (with token and user)
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(user)
+	json.NewEncoder(w).Encode(loginResp)
 }
 
 // Login handles user login (POST /users/login)

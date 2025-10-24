@@ -10,6 +10,8 @@
 *.dll
 *.so
 *.dylib
+habit-tracker
+ai-evaluation
 
 # Test binary, built with `go test -c`
 *.test

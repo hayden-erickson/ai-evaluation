@@ -32,7 +32,6 @@ function calculateStreak(logs) {
   }
 
   // Count consecutive days (with grace period)
-  let currentDate = new Date(today);
   let lastLogDate = null;
 
   for (const log of sortedLogs) {
@@ -107,45 +106,28 @@ function formatShortDate(date) {
 }
 
 /**
- * Check if date is today
- */
-function isToday(date) {
-  const today = new Date();
-  return date.getDate() === today.getDate() &&
-         date.getMonth() === today.getMonth() &&
-         date.getFullYear() === today.getFullYear();
-}
-
-/**
  * Habit component displaying a single habit with streak and logs
  */
 function Habit({ habit, onDelete, onEdit, onRefresh }) {
   const [logs, setLogs] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
   const [showLogModal, setShowLogModal] = useState(false);
   const [editingLog, setEditingLog] = useState(null);
 
   /**
    * Load logs for this habit
    */
-  useEffect(() => {
-    loadLogs();
-  }, [habit.id]);
-
-  const loadLogs = async () => {
+  const loadLogs = React.useCallback(async () => {
     try {
-      setLoading(true);
       const data = await logsAPI.getByHabit(habit.id);
       setLogs(data || []);
-      setError('');
     } catch (err) {
-      setError('Failed to load logs');
-      console.error(err);
-    } finally {
-      setLoading(false);
+      console.error('Failed to load logs:', err);
     }
-  };
+  }, [habit.id]);
+
+  useEffect(() => {
+    loadLogs();
+  }, [loadLogs]);
 
   /**
    * Create new log for today
