@@ -1,23 +1,4 @@
-REST API Endpoints
-- /users (GET, POST, PUT)
-    - ID
-    - Profile image url
-    - Name
-    - Time zone
-    - Phone number
-    - Created At Date & Time
-- /habits (GET, POST, PUT)
-    - User ID (references a User)
-    - ID
-    - Name
-    - Description
-    - Created At Date & Time
-- /logs (GET, POST, PUT)
-    - Habit ID (references a Habit)
-    - Created At Date & Time
-    - Notes
-
-Create a UI using react to interact with the above API that will be hosting it
+Create a UI using react to interact with the API in this codebase that will be hosting it
 this UI helps users keep track of habits in streaks
 Each time a habit log is created it adds to the streak
 The users goal is to keep their habit streak going as long as possible without breaking it
@@ -56,12 +37,14 @@ UI Component structure
             - inserts / updates habit using API
 
 
-- all errors are gracefully handled and displayed
+- all errors are gracefully handled and relevent messages are show to the user
 - Use standard libraries where possible to avoid excessive dependencies
 - modular components and functions
 - Robust, idiomatic, clean code 
 - UI is well formatted and all components are properly sized on screen with no run off
 - clear comments on all functions and conditionals
-- All buttons perform the correct action passing data to API
+- All buttons perform the correct action
 - All data is properly fetched from the api
-- README.md file with instructions to run locally and to deploy to AWS 
+- Strong security practices and authentication
+- Input validation
+- README.md file with instructions to run locally 
