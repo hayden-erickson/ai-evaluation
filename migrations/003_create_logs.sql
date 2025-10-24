@@ -1,0 +1,9 @@
+CREATE TABLE IF NOT EXISTS logs (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  habit_id INTEGER NOT NULL,
+  notes TEXT NOT NULL DEFAULT '',
+  created_at TIMESTAMP NOT NULL,
+  FOREIGN KEY(habit_id) REFERENCES habits(id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS idx_logs_habit_id ON logs(habit_id);
+
