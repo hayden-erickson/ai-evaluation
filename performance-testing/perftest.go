@@ -45,13 +45,13 @@ type TestUser struct {
 	PhoneNumber string
 	Password    string
 	Token       string
-	UserID      int64
+	UserID      string
 	Habits      []TestHabit
 }
 
 // Habit for testing
 type TestHabit struct {
-	ID   int64
+	ID   string
 	Name string
 }
 
@@ -62,13 +62,13 @@ type LoginResponse struct {
 }
 
 type UserResponse struct {
-	ID int64 `json:"id"`
+	ID string `json:"id"`
 }
 
 type HabitResponse struct {
-	ID     int64  `json:"id"`
+	ID     string `json:"id"`
 	Name   string `json:"name"`
-	UserID int64  `json:"user_id"`
+	UserID string `json:"user_id"`
 }
 
 func main() {
@@ -105,11 +105,11 @@ func main() {
 	fmt.Printf("Load Test Duration: %s\n", config.TestDuration)
 	fmt.Println("========================================")
 
-	// Test health endpoint
-	if err := testHealthEndpoint(config.BaseURL); err != nil {
-		log.Fatalf("Health check failed: %v", err)
+	// Test API availability
+	if err := testAPIAvailability(config.BaseURL); err != nil {
+		log.Fatalf("API availability check failed: %v", err)
 	}
-	fmt.Println("✓ Health check passed")
+	fmt.Println("✓ API availability check passed")
 
 	// Phase 1: User Registration
 	fmt.Println("\nPhase 1: User Registration")
@@ -153,15 +153,17 @@ func main() {
 	}
 }
 
-// testHealthEndpoint checks if the API is responsive
-func testHealthEndpoint(baseURL string) error {
-	resp, err := http.Get(baseURL + "/health")
+// testAPIAvailability checks if the API is responsive
+func testAPIAvailability(baseURL string) error {
+	// Test a simple GET request to /api/users to verify API is up
+	resp, err := http.Get(baseURL + "/api/users")
 	if err != nil {
 		return err
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != http.StatusOK {
+	// Accept any non-5xx status code as the API being available
+	if resp.StatusCode >= 500 {
 		return fmt.Errorf("unexpected status code: %d", resp.StatusCode)
 	}
 	return nil
@@ -229,7 +231,7 @@ func registerUser(baseURL string, user *TestUser) error {
 	}
 
 	jsonData, _ := json.Marshal(payload)
-	resp, err := http.Post(baseURL+"/api/register", "application/json", bytes.NewBuffer(jsonData))
+	resp, err := http.Post(baseURL+"/api/users", "application/json", bytes.NewBuffer(jsonData))
 	if err != nil {
 		return err
 	}
@@ -273,8 +275,8 @@ func loginUsers(config TestConfig, stats *TestStats, users []*TestUser) {
 // loginUser logs in a single user
 func loginUser(baseURL string, user *TestUser) error {
 	payload := map[string]string{
-		"phone_number": user.PhoneNumber,
-		"password":     user.Password,
+		"id":       user.UserID,
+		"password": user.Password,
 	}
 
 	jsonData, _ := json.Marshal(payload)
@@ -381,7 +383,7 @@ func createLogs(config TestConfig, stats *TestStats, users []*TestUser) {
 
 // createLog creates a single log entry
 func createLog(baseURL string, user *TestUser, habit TestHabit, logNum int) error {
-	payload := map[string]interface{}{
+	payload := map[string]string{
 		"habit_id": habit.ID,
 		"notes":    fmt.Sprintf("Log entry %d for habit %s", logNum, habit.Name),
 	}
@@ -465,7 +467,7 @@ func getHabits(baseURL string, user *TestUser) error {
 
 // getLogs retrieves all logs for a habit
 func getLogs(baseURL string, user *TestUser, habit TestHabit) error {
-	url := fmt.Sprintf("%s/api/logs?habit_id=%d", baseURL, habit.ID)
+	url := fmt.Sprintf("%s/api/logs?habit_id=%s", baseURL, habit.ID)
 	req, _ := http.NewRequest("GET", url, nil)
 	req.Header.Set("Authorization", "Bearer "+user.Token)
 
