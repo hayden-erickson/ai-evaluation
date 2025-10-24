@@ -42,7 +42,7 @@ func (h *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Register the user
-	user, err := h.service.Register(&req)
+	loginResp, err := h.service.Register(&req)
 	if err != nil {
 		log.Printf("Failed to register user: %v", err)
 		// Check if it's a validation error or duplicate user
@@ -51,21 +51,6 @@ func (h *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
 		} else {
 			http.Error(w, "Internal server error", http.StatusInternalServerError)
 		}
-		return
-	}
-
-	// Log the user in after successful registration to get a token
-	loginReq := models.LoginRequest{
-		PhoneNumber: req.PhoneNumber,
-		Password:    req.Password,
-	}
-	loginResp, err := h.service.Login(&loginReq)
-	if err != nil {
-		log.Printf("Failed to login after registration: %v", err)
-		// Still return the user, but without token
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusCreated)
-		json.NewEncoder(w).Encode(user)
 		return
 	}
 

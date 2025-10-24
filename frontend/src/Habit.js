@@ -112,16 +112,19 @@ function Habit({ habit, onDelete, onEdit, onRefresh }) {
   const [logs, setLogs] = useState([]);
   const [showLogModal, setShowLogModal] = useState(false);
   const [editingLog, setEditingLog] = useState(null);
+  const [error, setError] = useState('');
 
   /**
    * Load logs for this habit
    */
   const loadLogs = React.useCallback(async () => {
     try {
+      setError('');
       const data = await logsAPI.getByHabit(habit.id);
       setLogs(data || []);
     } catch (err) {
       console.error('Failed to load logs:', err);
+      setError('Failed to load logs. Please refresh the page.');
     }
   }, [habit.id]);
 
@@ -191,6 +194,8 @@ function Habit({ habit, onDelete, onEdit, onRefresh }) {
           </button>
         </div>
       </div>
+
+      {error && <div className="error-message">{error}</div>}
 
       <div className="streak-counter">
         <div className="streak-number">{streak}</div>
