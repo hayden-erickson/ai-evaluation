@@ -1,9 +1,10 @@
-# Habit Tracker REST API
+# Habit Tracker
 
-A RESTful API built in Go for tracking user habits with JWT-based authentication, SQLite database, and comprehensive security features.
+A full-stack habit tracking application with a Go REST API backend and React frontend. Track your habits, build streaks, and achieve your goals with a modern, minimal UI.
 
 ## Features
 
+### Backend (Go)
 - **JWT-based authentication** - Secure token-based authentication
 - **Input validation** - Comprehensive request validation for all endpoints
 - **Error logging** - All errors are logged with appropriate context
@@ -11,30 +12,54 @@ A RESTful API built in Go for tracking user habits with JWT-based authentication
 - **Modular architecture** - Separation of concerns with repository and service layers
 - **Dependency injection** - Clean, testable code structure
 - **Security headers** - XSS protection, clickjacking prevention, CSP
+- **CORS support** - Configured for frontend access
 - **RBAC** - Role-based access control (users can only access their own data)
 - **SQLite database** - Lightweight database for local development
+
+### Frontend (React)
+- **User Authentication** - Secure login and registration
+- **Habit Management** - Create, edit, and delete habits
+- **Streak Tracking** - Visual 30-day calendar showing progress
+- **Flexible Streak Rules** - Skip one day without breaking your streak
+- **Log Management** - Add detailed notes to daily logs
+- **Modern UI** - Pastel colors, rounded corners, smooth animations
+- **Responsive Design** - Works on desktop and mobile
 
 ## Architecture
 
 The application follows a clean, modular architecture:
 
-### Package Structure
+### Backend Package Structure
 
 - **`/models`** - Data structures and validation logic (User, Habit, Log)
 - **`/repository`** - Database operations and data access layer
 - **`/service`** - Business logic and service layer
 - **`/handlers`** - HTTP request handlers
-- **`/middleware`** - Authentication, logging, and security middleware
+- **`/middleware`** - Authentication, logging, security, and CORS middleware
 - **`/config`** - Database configuration and migrations
 - **`/utils`** - Utility functions (JWT, password hashing)
 - **`/migrations`** - SQL migration files
 
+### Frontend Structure
+
+- **`/frontend/src/components`** - React components (Habit, HabitList, Modals, Auth)
+- **`/frontend/src/contexts`** - React contexts (AuthContext)
+- **`/frontend/src/services`** - API client and service layer
+- **`/frontend/src/utils`** - Utility functions (streak calculations)
+
 ## Prerequisites
 
+### Backend
 - Go 1.21 or higher
 - SQLite3
 
-## Installation
+### Frontend
+- Node.js 18.x or higher
+- npm or yarn
+
+## Installation and Running Locally
+
+### Backend Setup
 
 1. Clone the repository:
 ```bash
@@ -42,7 +67,7 @@ git clone https://github.com/hayden-erickson/ai-evaluation.git
 cd ai-evaluation
 ```
 
-2. Install dependencies:
+2. Install Go dependencies:
 ```bash
 go mod download
 ```
@@ -54,13 +79,56 @@ export JWT_SECRET=your-secret-key   # Default: "default-secret-key-change-in-pro
 export DB_PATH=habits.db            # Default: habits.db
 ```
 
-## Running the Application
-
+4. Start the backend server:
 ```bash
 go run main.go
 ```
 
-The server will start on port 8080 (or the port specified in the PORT environment variable).
+The API server will start on port 8080 (or the port specified in the PORT environment variable).
+
+### Frontend Setup
+
+1. Navigate to the frontend directory:
+```bash
+cd frontend
+```
+
+2. Install dependencies:
+```bash
+npm install
+```
+
+3. (Optional) Configure API URL:
+```bash
+# Create .env file if backend is not on localhost:8080
+echo "VITE_API_URL=http://localhost:8080" > .env
+```
+
+4. Start the development server:
+```bash
+npm run dev
+```
+
+The frontend will be available at `http://localhost:5173`
+
+### Quick Start (Both Services)
+
+Open two terminal windows:
+
+**Terminal 1 - Backend:**
+```bash
+cd ai-evaluation
+go run main.go
+```
+
+**Terminal 2 - Frontend:**
+```bash
+cd ai-evaluation/frontend
+npm install  # First time only
+npm run dev
+```
+
+Then open your browser to `http://localhost:5173` and create an account!
 
 ## API Endpoints
 
