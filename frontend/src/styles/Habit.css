@@ -1,0 +1,268 @@
+/* Habit card styles */
+
+.habit-card {
+  background: white;
+  border-radius: 20px;
+  padding: 24px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
+  transition: all 0.2s;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.habit-card:hover {
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+}
+
+.habit-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.habit-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.habit-info h3 {
+  margin: 0 0 8px 0;
+  font-size: 20px;
+  color: #2c3e50;
+  word-wrap: break-word;
+}
+
+.habit-description {
+  margin: 0;
+  color: #7f8c8d;
+  font-size: 14px;
+  line-height: 1.5;
+  word-wrap: break-word;
+}
+
+.habit-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.btn-icon {
+  background: #f5f7fa;
+  border: none;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  font-size: 16px;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-icon:hover {
+  background: #e8ecf1;
+  transform: scale(1.1);
+}
+
+.streak-info {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  padding: 20px;
+  background: linear-gradient(135deg, #ffeaa7 0%, #fdcb6e 100%);
+  border-radius: 16px;
+}
+
+.streak-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.streak-number {
+  font-size: 32px;
+  font-weight: 700;
+  color: #2c3e50;
+}
+
+.streak-label {
+  font-size: 12px;
+  color: #2c3e50;
+  opacity: 0.7;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.btn-new-log {
+  width: 100%;
+  padding: 14px;
+  background: linear-gradient(135deg, #a8d5e2 0%, #8bc6d9 100%);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: inherit;
+}
+
+.btn-new-log:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(168, 213, 226, 0.4);
+}
+
+.btn-new-log:active {
+  transform: translateY(0);
+}
+
+.streak-list-container {
+  border-top: 1px solid #e8ecf1;
+  padding-top: 20px;
+}
+
+.streak-list-toggle {
+  background: none;
+  border: none;
+  color: #7f8c8d;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 8px 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: inherit;
+  transition: color 0.2s;
+}
+
+.streak-list-toggle:hover {
+  color: #2c3e50;
+}
+
+.streak-list {
+  margin-top: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.day-container {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  background: #fafbfc;
+  border-radius: 12px;
+  border: 2px solid transparent;
+  transition: all 0.2s;
+}
+
+.day-container.has-log {
+  background: linear-gradient(135deg, #dfe6e9 0%, #e8ecf1 100%);
+  border-color: #b2bec3;
+}
+
+.day-container.today {
+  border-color: #a8d5e2;
+  background: linear-gradient(135deg, #e8f4f8 0%, #d4e9f0 100%);
+}
+
+.day-date {
+  font-size: 14px;
+  font-weight: 600;
+  color: #2c3e50;
+  min-width: 80px;
+}
+
+.log-entry {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 8px;
+  transition: background 0.2s;
+  position: relative;
+}
+
+.log-entry:hover {
+  background: rgba(255, 255, 255, 0.5);
+}
+
+.log-indicator {
+  width: 24px;
+  height: 24px;
+  background: linear-gradient(135deg, #74b9ff 0%, #0984e3 100%);
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+.log-notes {
+  flex: 1;
+  font-size: 13px;
+  color: #2c3e50;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.empty-log {
+  flex: 1;
+  text-align: center;
+  color: #bdc3c7;
+  font-size: 20px;
+}
+
+.btn-delete-log {
+  background: none;
+  border: none;
+  color: #e74c3c;
+  font-size: 20px;
+  cursor: pointer;
+  padding: 4px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  opacity: 0;
+}
+
+.log-entry:hover .btn-delete-log {
+  opacity: 1;
+}
+
+.btn-delete-log:hover {
+  background: #fee;
+}
+
+.loading {
+  text-align: center;
+  padding: 20px;
+  color: #7f8c8d;
+  font-size: 14px;
+}
+
+@media (max-width: 768px) {
+  .day-container {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .log-entry {
+    width: 100%;
+  }
+}
