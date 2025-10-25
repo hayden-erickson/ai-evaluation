@@ -1,10 +1,11 @@
-import React, { useEffect, useMemo, useState } from "react";
-import { api, Habit, Log } from "../lib/api";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { api } from "../lib/api";
+import type { Habit, Log } from "../lib/api";
 
 type ModalProps = {
-	open: boolean;
-	onClose: () => void;
-	children: React.ReactNode;
+    open: boolean;
+    onClose: () => void;
+    children: ReactNode;
 };
 
 function Modal({ open, onClose, children }: ModalProps) {
@@ -42,9 +43,6 @@ export function HabitUI() {
 		};
 	}, []);
 
-	const streaks = useMemo(() => {
-		return new Map<number, number>();
-	}, [habits]);
 
 	return (
 		<div className="container">
@@ -59,7 +57,6 @@ export function HabitUI() {
 					<HabitItem
 						key={h.id}
 						habit={h}
-						streakCount={streaks.get(h.id) || 0}
 						onEdit={() => setEditingHabit(h)}
 						onDelete={async () => {
 							if (!confirm("Delete this habit?")) return;
@@ -73,22 +70,22 @@ export function HabitUI() {
 				))}
 			</div>
 
-			<Modal open={!!editingHabit} onClose={() => setEditingHabit(null)}>
-				<HabitForm
-					initial={editingHabit || undefined}
-					onCancel={() => setEditingHabit(null)}
-					onSave={async (values) => {
-						if (!editingHabit || editingHabit.id === 0) {
-							const created = await api.createHabit(values);
-							setHabits((prev) => [created, ...prev]);
-						} else {
-							const updated = await api.updateHabit(editingHabit.id, values);
-							setHabits((prev) => prev.map((x) => (x.id === updated.id ? updated : x)));
-						}
-						setEditingHabit(null);
-					}}
-				/>
-			</Modal>
+            <Modal open={!!editingHabit} onClose={() => setEditingHabit(null)}>
+                <HabitForm
+                    initial={editingHabit || undefined}
+                    onCancel={() => setEditingHabit(null)}
+                    onSave={async (values) => {
+                        if (!editingHabit || editingHabit.id === 0) {
+                            const created = await api.createHabit(values as { name: string; description?: string; duration_seconds?: number });
+                            setHabits((prev) => [created, ...prev]);
+                        } else {
+                            const updated = await api.updateHabit(editingHabit.id, values);
+                            setHabits((prev) => prev.map((x) => (x.id === updated.id ? updated : x)));
+                        }
+                        setEditingHabit(null);
+                    }}
+                />
+            </Modal>
 
 			<Modal open={!!editingLog} onClose={() => setEditingLog(null)}>
 				<LogForm
@@ -110,26 +107,23 @@ export function HabitUI() {
 	);
 }
 
-function HabitItem({ habit, streakCount, onEdit, onDelete, onNewLog, onEditLog, refreshSignal }: { habit: Habit; streakCount: number; onEdit: () => void; onDelete: () => void; onNewLog: () => void; onEditLog: (log: Log) => void; refreshSignal: number }) {
-	const [logs, setLogs] = useState<Log[]>([]);
-	const [loadingLogs, setLoadingLogs] = useState(false);
-	const [error, setError] = useState<string | null>(null);
+function HabitItem({ habit, onEdit, onDelete, onNewLog, onEditLog, refreshSignal }: { habit: Habit; onEdit: () => void; onDelete: () => void; onNewLog: () => void; onEditLog: (log: Log) => void; refreshSignal: number }) {
+    const [logs, setLogs] = useState<Log[]>([]);
 
-	useEffect(() => {
-		let cancelled = false;
-		setLoadingLogs(true);
-		api
-			.getHabitLogs(habit.id)
-			.then((l) => {
-				if (!cancelled) setLogs(l);
-			})
-			.catch((e) => !cancelled && setError(e.message))
-			.finally(() => !cancelled && setLoadingLogs(false));
-		return () => {
-			cancelled = true;
-		};
-	// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [habit.id, refreshSignal]);
+    useEffect(() => {
+        let cancelled = false;
+        api
+            .getHabitLogs(habit.id)
+            .then((l) => {
+                if (!cancelled) setLogs(l);
+            })
+            .catch(() => {})
+            .finally(() => {});
+        return () => {
+            cancelled = true;
+        };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [habit.id, refreshSignal]);
 
 	const { gridDays, streak } = useMemo(() => {
 		const days = buildRecentDays(30);
@@ -156,8 +150,8 @@ function HabitItem({ habit, streakCount, onEdit, onDelete, onNewLog, onEditLog, 
 					<button className="danger" onClick={onDelete}>Delete</button>
 				</div>
 			</div>
-			<div className="streak-grid">
-				{gridDays.map((d, idx) => (
+            <div className="streak-grid">
+                {gridDays.map((d) => (
 					<div
 						key={d.date}
 						className={"day" + (d.log ? " filled" : "")}

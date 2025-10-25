@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
-import { api, LoginRequest, LoginResponse } from "./api";
+import { api } from "./api";
+import type { LoginRequest, LoginResponse } from "./api";
 
 type AuthContextType = {
 	user: LoginResponse["user"] | null;

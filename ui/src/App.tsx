@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import "./App.css";
 import { AuthProvider, useAuth } from "./lib/auth";
 import { HabitUI } from "./components/HabitUI";
