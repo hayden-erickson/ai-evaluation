@@ -1,0 +1,31 @@
+Measure	Grade	Label	Description
+Code Quality	1	Poor	Code is buggy, inconsistent, and lacks structure. Frequent runtime errors.
+Code Quality	2	Fair	Basic functionality works, but code is fragile and hard to maintain.
+Code Quality	3	Good	Mostly reliable with minor issues; follows some best practices.
+Code Quality	4	Very Good	Clean, modular, and adheres to most standards; few minor improvements needed.
+Code Quality	5	Excellent	Robust, efficient, idiomatic code with strong adherence to best practices and patterns.
+Edge Case Handling	1	Poor	Ignores edge cases; frequent crashes or incorrect behavior.
+Edge Case Handling	2	Fair	Handles some edge cases but misses common or critical ones.
+Edge Case Handling	3	Good	Covers most expected edge cases; some rare ones may be missed.
+Edge Case Handling	4	Very Good	Thoughtful handling of edge cases; minimal unexpected behavior.
+Edge Case Handling	5	Excellent	Comprehensive coverage of all foreseeable edge cases with graceful degradation.
+Readability	1	Poor	Hard to follow; lacks comments, meaningful naming, and structure.
+Readability	2	Fair	Some readability, but cluttered or inconsistent formatting.
+Readability	3	Good	Reasonably readable with decent naming and structure.
+Readability	4	Very Good	Clear, well-organized, with helpful comments and consistent style.
+Readability	5	Excellent	Highly readable, intuitive, and self-documenting; easy for others to understand and maintain.
+Security Awareness	1	Poor	No consideration for security; vulnerable to common attacks.
+Security Awareness	2	Fair	Basic security measures in place; some gaps remain.
+Security Awareness	3	Good	Addresses common vulnerabilities (e.g., XSS, CSRF); some areas could be hardened.
+Security Awareness	4	Very Good	Proactive security practices; uses secure coding patterns and libraries.
+Security Awareness	5	Excellent	Security is deeply integrated; thorough validation, sanitization, and threat modeling.
+Coverage of Requirements	1	Poor	Misses most requirements; incomplete or incorrect implementation.
+Coverage of Requirements	2	Fair	Covers some requirements; lacks depth or accuracy.
+Coverage of Requirements	3	Good	Meets most requirements; minor gaps or misinterpretations.
+Coverage of Requirements	4	Very Good	Fully meets requirements with attention to detail.
+Coverage of Requirements	5	Excellent	Exceeds expectations; anticipates needs and adds thoughtful enhancements.
+Ability to Add New Code	1	Poor	Difficult to extend; tightly coupled and fragile.
+Ability to Add New Code	2	Fair	Some extensibility, but changes are risky or complex.
+Ability to Add New Code	3	Good	Reasonably modular; new features can be added with effort.
+Ability to Add New Code	4	Very Good	Well-structured for extension; minimal friction for new features.
+Ability to Add New Code	5	Excellent	Highly extensible; new code integrates seamlessly with minimal risk.
