@@ -41,8 +41,8 @@ func (h *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Register the user
-	user, err := h.service.Register(&req)
+	// Register the user and get login response with token
+	resp, err := h.service.RegisterAndLogin(&req)
 	if err != nil {
 		log.Printf("Failed to register user: %v", err)
 		// Check if it's a validation error or duplicate user
@@ -54,10 +54,10 @@ func (h *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Return the created user
+	// Return the login response with token
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(user)
+	json.NewEncoder(w).Encode(resp)
 }
 
 // Login handles user login (POST /users/login)

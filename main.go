@@ -142,7 +142,7 @@ func main() {
 	})
 
 	// Apply middleware to the mux
-	handler := middleware.LoggingMiddleware(middleware.SecurityHeadersMiddleware(mux))
+	handler := middleware.CORSMiddleware(middleware.LoggingMiddleware(middleware.SecurityHeadersMiddleware(mux)))
 
 	// Start the server
 	log.Printf("Server starting on port %s", port)
