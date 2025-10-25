@@ -22,8 +22,8 @@ func SecurityHeadersMiddleware(next http.Handler) http.Handler {
 		// Restrict referrer information
 		w.Header().Set("Referrer-Policy", "strict-origin-when-cross-origin")
 
-		// Content Security Policy
-		w.Header().Set("Content-Security-Policy", "default-src 'self'")
+		// Content Security Policy (relaxed for development)
+		// w.Header().Set("Content-Security-Policy", "default-src 'self'")
 
 		next.ServeHTTP(w, r)
 	})
