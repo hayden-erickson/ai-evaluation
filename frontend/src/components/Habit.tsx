@@ -24,15 +24,10 @@ const Habit: React.FC<HabitProps> = ({ habit, onEdit, onDelete, onRefresh }) => 
   const [selectedLog, setSelectedLog] = useState<Log | null>(null);
   const [isExpanded, setIsExpanded] = useState(false);
 
-  // Fetch logs when component mounts or habit changes
-  useEffect(() => {
-    fetchLogs();
-  }, [habit.id]);
-
   /**
    * Fetch all logs for this habit
    */
-  const fetchLogs = async () => {
+  const fetchLogs = React.useCallback(async () => {
     setIsLoading(true);
     setError('');
     try {
@@ -44,7 +39,12 @@ const Habit: React.FC<HabitProps> = ({ habit, onEdit, onDelete, onRefresh }) => 
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [habit.id]);
+
+  // Fetch logs when component mounts or habit changes
+  useEffect(() => {
+    fetchLogs();
+  }, [fetchLogs]);
 
   /**
    * Create a new log for today
