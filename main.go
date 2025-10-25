@@ -141,6 +141,20 @@ func main() {
 		w.Write([]byte("OK"))
 	})
 
+	// Serve static files from frontend/build directory
+	fs := http.FileServer(http.Dir("./frontend/build"))
+	mux.Handle("/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Check if the path starts with /api, /users, /habits, /logs, or /health
+		// If so, it's an API route and should be handled by the API handlers
+		path := r.URL.Path
+		if len(path) >= 5 && (path[:5] == "/api/" || path[:7] == "/users/" || path[:8] == "/habits/" || path[:6] == "/logs/" || path == "/health") {
+			http.NotFound(w, r)
+			return
+		}
+		// Otherwise, serve the React app
+		fs.ServeHTTP(w, r)
+	}))
+
 	// Apply middleware to the mux
 	handler := middleware.LoggingMiddleware(middleware.SecurityHeadersMiddleware(mux))
 
