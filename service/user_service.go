@@ -12,6 +12,7 @@ import (
 // UserService defines the interface for user business logic
 type UserService interface {
 	Register(req *models.CreateUserRequest) (*models.User, error)
+	RegisterAndLogin(req *models.CreateUserRequest) (*models.LoginResponse, error)
 	Login(req *models.LoginRequest) (*models.LoginResponse, error)
 	GetUser(id int64) (*models.User, error)
 	UpdateUser(id int64, req *models.UpdateUserRequest) (*models.User, error)
@@ -60,6 +61,26 @@ func (s *userService) Register(req *models.CreateUserRequest) (*models.User, err
 	}
 
 	return user, nil
+}
+
+// RegisterAndLogin registers a new user and returns a login response with JWT token
+func (s *userService) RegisterAndLogin(req *models.CreateUserRequest) (*models.LoginResponse, error) {
+	// Register the user
+	user, err := s.Register(req)
+	if err != nil {
+		return nil, err
+	}
+
+	// Generate a JWT token (24 hours expiration)
+	token, err := s.jwtManager.GenerateToken(user.ID, 24*time.Hour)
+	if err != nil {
+		return nil, fmt.Errorf("failed to generate token: %w", err)
+	}
+
+	return &models.LoginResponse{
+		Token: token,
+		User:  *user,
+	}, nil
 }
 
 // Login authenticates a user and returns a JWT token
