@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { Habit } from '../../types';
-import { HabitService } from '../../services/HabitService';
+import { Habit } from '../types';
+import { HabitService } from '../services/HabitService';
 import HabitComponent from './Habit';
 import HabitDetailsModal from './HabitDetailsModal';
 import './HabitList.css';

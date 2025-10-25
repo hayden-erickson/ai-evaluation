@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Log } from '../../types';
-import { LogService } from '../../services/LogService';
+import { Log } from '../types';
+import { LogService } from '../services/LogService';
 
 interface LogDetailsModalProps {
   log: Log | null;

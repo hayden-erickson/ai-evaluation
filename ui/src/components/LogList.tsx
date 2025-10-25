@@ -1,5 +1,5 @@
 import React from 'react';
-import { Log } from '../../types';
+import { Log } from '../types';
 
 interface LogListProps {
   logs: Log[];

@@ -1,7 +1,7 @@
 const API_URL = '/users';
 
 export const AuthService = {
-  login: async (email, password) => {
+  login: async (email: string, password: string) => {
     const response = await fetch(`${API_URL}/login`, {
       method: 'POST',
       headers: {
@@ -15,7 +15,7 @@ export const AuthService = {
     return response.json();
   },
 
-  register: async (username, email, password) => {
+  register: async (username: string, email: string, password: string) => {
     const response = await fetch(`${API_URL}/register`, {
       method: 'POST',
       headers: {

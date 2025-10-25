@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Habit } from '../../types';
-import { HabitService } from '../../services/HabitService';
+import { Habit } from '../types';
+import { HabitService } from '../services/HabitService';
 
 interface HabitDetailsModalProps {
   habit: Habit | null;

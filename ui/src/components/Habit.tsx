@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Habit, Log } from '../../types';
+import { Habit, Log } from '../types';
 import LogDetailsModal from './LogDetailsModal';
-import { LogService } from '../../services/LogService';
-import { calculateStreak } from '../../utils/streak';
+import { LogService } from '../services/LogService';
+import { calculateStreak } from '../utils/streak';
 import LogList from './LogList';
 import './Habit.css';
 
