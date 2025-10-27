@@ -56,7 +56,9 @@ spec:
     - ipBlock:
         cidr: 0.0.0.0/0
         except:
-        - 169.254.169.254/32  # Prevent access to cloud metadata service
+        # Block access to cloud provider metadata services
+        - 169.254.169.254/32  # AWS and GCP metadata service
+        - 168.63.129.16/32    # Azure metadata service
     ports:
     - protocol: TCP
       port: 443

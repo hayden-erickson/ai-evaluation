@@ -104,42 +104,29 @@ func findNotificationCandidates(db *sql.DB) ([]NotificationCandidate, error) {
 	twoDaysAgo := now.Add(-48 * time.Hour)
 	oneDayAgo := now.Add(-24 * time.Hour)
 
-	// Query to find users who need notifications
-	// Conditions:
-	// 1. No logs over the last 2 days
-	// 2. 1 log on day 1 (2 days ago to 1 day ago), but no log on day 2 (last 24 hours)
+	// Optimized query using LEFT JOIN and aggregation to find users who need notifications
+	// This is more efficient than multiple EXISTS subqueries
 	query := `
-		SELECT DISTINCT u.id, u.name, u.phone_number, u.time_zone
+		SELECT DISTINCT 
+			u.id, 
+			u.name, 
+			u.phone_number, 
+			u.time_zone,
+			COALESCE(SUM(CASE WHEN l.created_at >= ? AND l.created_at < ? THEN 1 ELSE 0 END), 0) as day1_count,
+			COALESCE(SUM(CASE WHEN l.created_at >= ? THEN 1 ELSE 0 END), 0) as day2_count
 		FROM users u
 		INNER JOIN habits h ON u.id = h.user_id
-		WHERE 
-			-- Condition 1: User has no logs in the last 2 days
-			NOT EXISTS (
-				SELECT 1 
-				FROM logs l 
-				WHERE l.habit_id = h.id 
-				AND l.created_at >= ?
-			)
+		LEFT JOIN logs l ON l.habit_id = h.id AND l.created_at >= ?
+		GROUP BY u.id, u.name, u.phone_number, u.time_zone
+		HAVING 
+			-- Condition 1: No logs in the last 2 days
+			(day1_count = 0 AND day2_count = 0)
 			OR
-			-- Condition 2: User has logs between 2 days ago and 1 day ago, but none in the last day
-			(
-				EXISTS (
-					SELECT 1 
-					FROM logs l 
-					WHERE l.habit_id = h.id 
-					AND l.created_at >= ? 
-					AND l.created_at < ?
-				)
-				AND NOT EXISTS (
-					SELECT 1 
-					FROM logs l 
-					WHERE l.habit_id = h.id 
-					AND l.created_at >= ?
-				)
-			)
+			-- Condition 2: Has logs between 2 days ago and 1 day ago, but none in the last day
+			(day1_count > 0 AND day2_count = 0)
 	`
 
-	rows, err := db.Query(query, twoDaysAgo, twoDaysAgo, oneDayAgo, oneDayAgo)
+	rows, err := db.Query(query, twoDaysAgo, oneDayAgo, oneDayAgo, twoDaysAgo)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query notification candidates: %w", err)
 	}
@@ -148,12 +135,19 @@ func findNotificationCandidates(db *sql.DB) ([]NotificationCandidate, error) {
 	var candidates []NotificationCandidate
 	for rows.Next() {
 		var c NotificationCandidate
-		if err := rows.Scan(&c.UserID, &c.Name, &c.PhoneNumber, &c.TimeZone); err != nil {
+		var day1Count, day2Count int
+		if err := rows.Scan(&c.UserID, &c.Name, &c.PhoneNumber, &c.TimeZone, &day1Count, &day2Count); err != nil {
 			return nil, fmt.Errorf("failed to scan row: %w", err)
 		}
 		
-		// Determine the reason for notification
-		c.Reason = determineNotificationReason(db, c.UserID, twoDaysAgo, oneDayAgo)
+		// Determine the reason for notification based on log counts
+		if day1Count == 0 && day2Count == 0 {
+			c.Reason = "no_logs_2_days"
+		} else if day1Count > 0 && day2Count == 0 {
+			c.Reason = "logged_yesterday_not_today"
+		} else {
+			c.Reason = "missed_logging"
+		}
 		
 		candidates = append(candidates, c)
 	}
@@ -163,49 +157,6 @@ func findNotificationCandidates(db *sql.DB) ([]NotificationCandidate, error) {
 	}
 
 	return candidates, nil
-}
-
-// determineNotificationReason determines why a user is receiving a notification
-func determineNotificationReason(db *sql.DB, userID int64, twoDaysAgo, oneDayAgo time.Time) string {
-	// Check if user has any logs in the last 2 days
-	var count int
-	err := db.QueryRow(`
-		SELECT COUNT(*)
-		FROM logs l
-		INNER JOIN habits h ON l.habit_id = h.id
-		WHERE h.user_id = ? AND l.created_at >= ?
-	`, userID, twoDaysAgo).Scan(&count)
-	
-	if err != nil {
-		log.Printf("Error determining notification reason for user %d: %v", userID, err)
-		return "missed_logging"
-	}
-
-	if count == 0 {
-		return "no_logs_2_days"
-	}
-
-	// Check if they have logs in day 1 but not day 2
-	var day1Count, day2Count int
-	db.QueryRow(`
-		SELECT COUNT(*)
-		FROM logs l
-		INNER JOIN habits h ON l.habit_id = h.id
-		WHERE h.user_id = ? AND l.created_at >= ? AND l.created_at < ?
-	`, userID, twoDaysAgo, oneDayAgo).Scan(&day1Count)
-
-	db.QueryRow(`
-		SELECT COUNT(*)
-		FROM logs l
-		INNER JOIN habits h ON l.habit_id = h.id
-		WHERE h.user_id = ? AND l.created_at >= ?
-	`, userID, oneDayAgo).Scan(&day2Count)
-
-	if day1Count > 0 && day2Count == 0 {
-		return "logged_yesterday_not_today"
-	}
-
-	return "missed_logging"
 }
 
 // sendNotification sends a notification via Twilio

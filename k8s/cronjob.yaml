@@ -53,7 +53,8 @@ spec:
           containers:
           - name: notification-cron
             # Update this to your actual image repository and tag
-            image: your-registry/habit-notification-cron:latest
+            # Note: Never use 'latest' tag in production - use specific versions like v1.0.0
+            image: your-registry/habit-notification-cron:v1.0.0
             imagePullPolicy: IfNotPresent
             
             # Security context for the container
