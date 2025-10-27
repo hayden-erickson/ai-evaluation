@@ -1,0 +1,75 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: notification-cron-netpol
+  namespace: default
+spec:
+  # Apply this policy to pods with the app label
+  podSelector:
+    matchLabels:
+      app: habit-notification-cron
+  
+  # Define policy types
+  policyTypes:
+  - Egress
+  
+  # Allow egress traffic to specific destinations
+  egress:
+  # Allow DNS resolution
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: kube-system
+    ports:
+    - protocol: UDP
+      port: 53
+  
+  # Allow connections to MySQL database
+  # Option 1: If MySQL is in the same namespace with a specific label
+  - to:
+    - podSelector:
+        matchLabels:
+          app: mysql  # Update this to match your MySQL pod labels
+    ports:
+    - protocol: TCP
+      port: 3306
+  
+  # Option 2: If MySQL is in a different namespace, uncomment and configure:
+  # - to:
+  #   - namespaceSelector:
+  #       matchLabels:
+  #         name: database  # Your database namespace
+  #   ports:
+  #   - protocol: TCP
+  #     port: 3306
+  
+  # Option 3: If MySQL is external (outside cluster), use CIDR:
+  # - to:
+  #   - ipBlock:
+  #       cidr: 10.0.0.0/16  # Your MySQL server IP range
+  #   ports:
+  #   - protocol: TCP
+  #     port: 3306
+  
+  # Allow HTTPS connections to Twilio API
+  - to:
+    - ipBlock:
+        cidr: 0.0.0.0/0
+        except:
+        - 169.254.169.254/32  # Prevent access to cloud metadata service
+    ports:
+    - protocol: TCP
+      port: 443
+
+---
+# Note: This NetworkPolicy is optional but recommended for production.
+# Before applying:
+# 1. Verify your cluster supports NetworkPolicies (most do, but some managed services require enabling)
+# 2. Adjust the MySQL egress rules based on your MySQL deployment
+# 3. Test thoroughly to ensure the CronJob can still connect to both MySQL and Twilio
+#
+# To apply:
+# kubectl apply -f k8s/network-policy.yaml
+#
+# To verify:
+# kubectl describe networkpolicy notification-cron-netpol -n default

@@ -1,0 +1,39 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: notification-cron-sa
+  namespace: default
+  labels:
+    app: habit-notification-cron
+
+---
+# Note: This CronJob doesn't require special Kubernetes API permissions
+# since it only connects to an external database and Twilio API.
+# However, if you need to interact with Kubernetes resources in the future,
+# you can add Role and RoleBinding below.
+
+# Example Role (commented out - uncomment and modify if needed):
+# apiVersion: rbac.authorization.k8s.io/v1
+# kind: Role
+# metadata:
+#   name: notification-cron-role
+#   namespace: default
+# rules:
+# - apiGroups: [""]
+#   resources: ["configmaps"]
+#   verbs: ["get", "list"]
+
+# Example RoleBinding (commented out - uncomment and modify if needed):
+# apiVersion: rbac.authorization.k8s.io/v1
+# kind: RoleBinding
+# metadata:
+#   name: notification-cron-rolebinding
+#   namespace: default
+# subjects:
+# - kind: ServiceAccount
+#   name: notification-cron-sa
+#   namespace: default
+# roleRef:
+#   kind: Role
+#   name: notification-cron-role
+#   apiGroup: rbac.authorization.k8s.io

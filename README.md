@@ -13,6 +13,7 @@ A RESTful API built in Go for tracking user habits with JWT-based authentication
 - **Security headers** - XSS protection, clickjacking prevention, CSP
 - **RBAC** - Role-based access control (users can only access their own data)
 - **SQLite database** - Lightweight database for local development
+- **Kubernetes CronJob** - Automated SMS notifications for habit tracking reminders
 
 ## Architecture
 
@@ -28,6 +29,8 @@ The application follows a clean, modular architecture:
 - **`/config`** - Database configuration and migrations
 - **`/utils`** - Utility functions (JWT, password hashing)
 - **`/migrations`** - SQL migration files
+- **`/cmd/notification-cron`** - Kubernetes CronJob for sending habit reminder notifications via SMS
+- **`/k8s`** - Kubernetes manifests for deploying the notification CronJob
 
 ## Prerequisites
 
@@ -296,6 +299,40 @@ curl -X POST http://localhost:8080/habits \
     "description": "30 minutes of cardio"
   }'
 ```
+
+## Kubernetes CronJob for Notifications
+
+This repository includes a production-ready Kubernetes CronJob that automatically sends SMS notifications to users who haven't logged their habits. The CronJob:
+
+- Queries the database for habit logs over the past 2 days
+- Identifies users who need reminders based on their logging patterns
+- Sends personalized SMS notifications via Twilio
+- Runs on a configurable schedule (default: daily at 8:00 AM UTC)
+- Includes comprehensive security features and error handling
+
+### Quick Start
+
+```bash
+# Build and push the Docker image
+docker build -t your-registry/habit-notification-cron:v1.0.0 -f cmd/notification-cron/Dockerfile .
+docker push your-registry/habit-notification-cron:v1.0.0
+
+# Create Kubernetes secret with credentials
+kubectl create secret generic notification-cron-secrets \
+  --from-literal=DB_PASSWORD='your-db-password' \
+  --from-literal=TWILIO_ACCOUNT_SID='your-account-sid' \
+  --from-literal=TWILIO_AUTH_TOKEN='your-auth-token' \
+  --from-literal=TWILIO_FROM_NUMBER='+1234567890'
+
+# Deploy to Kubernetes
+kubectl apply -f k8s/configmap.yaml
+kubectl apply -f k8s/rbac.yaml
+kubectl apply -f k8s/cronjob.yaml
+```
+
+For detailed deployment instructions, see:
+- [k8s/QUICKSTART.md](k8s/QUICKSTART.md) - Quick deployment guide
+- [k8s/README.md](k8s/README.md) - Comprehensive documentation
 
 ## License
 
