@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: habit-reminder-config
+data:
+  DB_HOST: "mysql" # Or your MySQL service name in Kubernetes
+  DB_PORT: "3306"
+  DB_NAME: "habits"

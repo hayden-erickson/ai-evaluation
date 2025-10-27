@@ -1,0 +1,42 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: habit-reminder-cronjob
+spec:
+  schedule: "0 0 * * *" # Runs every day at midnight
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          serviceAccountName: habit-reminder-sa
+          containers:
+          - name: habit-reminder
+            image: your-repo/habit-reminder:latest # Replace with your image repository
+            imagePullPolicy: IfNotPresent
+            envFrom:
+            - secretRef:
+                name: habit-reminder-secrets
+            - configMapRef:
+                name: habit-reminder-config
+            resources:
+              requests:
+                memory: "64Mi"
+                cpu: "100m"
+              limits:
+                memory: "128Mi"
+                cpu: "250m"
+            livenessProbe:
+              exec:
+                command:
+                - "/habit-reminder-cronjob"
+                - "healthcheck"
+              initialDelaySeconds: 5
+              periodSeconds: 15
+            readinessProbe:
+              exec:
+                command:
+                - "/habit-reminder-cronjob"
+                - "healthcheck"
+              initialDelaySeconds: 5
+              periodSeconds: 15
+          restartPolicy: OnFailure
