@@ -1,0 +1,112 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: habit-notification-cron
+  namespace: default
+spec:
+  # Run every day at 8:00 AM UTC
+  # Format: minute hour day month weekday
+  schedule: "0 8 * * *"
+  
+  # Optional: Set timezone (requires Kubernetes 1.25+)
+  # timeZone: "America/New_York"
+  
+  # Keep last 3 successful and 1 failed job for debugging
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 1
+  
+  # Don't allow concurrent runs to prevent duplicate notifications
+  concurrencyPolicy: Forbid
+  
+  # If a job misses its scheduled time (e.g., cluster downtime),
+  # don't start it if it's more than 100 seconds late
+  startingDeadlineSeconds: 100
+  
+  jobTemplate:
+    spec:
+      # Don't retry failed jobs automatically
+      backoffLimit: 2
+      
+      # Clean up completed jobs after 1 hour
+      ttlSecondsAfterFinished: 3600
+      
+      template:
+        metadata:
+          labels:
+            app: habit-notification-cron
+            version: v1
+        spec:
+          # Use a service account for RBAC (optional, but recommended)
+          serviceAccountName: notification-cron-sa
+          
+          # Don't restart the container on failure
+          restartPolicy: Never
+          
+          # Security context for the pod
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+            fsGroup: 1000
+            seccompProfile:
+              type: RuntimeDefault
+          
+          containers:
+          - name: notification-cron
+            # Update this to your actual image repository and tag
+            # Note: Never use 'latest' tag in production - use specific versions like v1.0.0
+            image: your-registry/habit-notification-cron:v1.0.0
+            imagePullPolicy: IfNotPresent
+            
+            # Security context for the container
+            securityContext:
+              allowPrivilegeEscalation: false
+              readOnlyRootFilesystem: true
+              runAsNonRoot: true
+              runAsUser: 1000
+              capabilities:
+                drop:
+                  - ALL
+            
+            # Environment variables from ConfigMap
+            envFrom:
+            - configMapRef:
+                name: notification-cron-config
+            
+            # Environment variables from Secret
+            env:
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: notification-cron-secrets
+                  key: DB_PASSWORD
+            - name: TWILIO_ACCOUNT_SID
+              valueFrom:
+                secretKeyRef:
+                  name: notification-cron-secrets
+                  key: TWILIO_ACCOUNT_SID
+            - name: TWILIO_AUTH_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: notification-cron-secrets
+                  key: TWILIO_AUTH_TOKEN
+            - name: TWILIO_FROM_NUMBER
+              valueFrom:
+                secretKeyRef:
+                  name: notification-cron-secrets
+                  key: TWILIO_FROM_NUMBER
+            
+            # Resource limits and requests
+            resources:
+              requests:
+                memory: "64Mi"
+                cpu: "100m"
+              limits:
+                memory: "128Mi"
+                cpu: "200m"
+            
+            # No liveness/readiness probes needed for a job that runs once
+            # But we can add a startup probe if the job takes a while to connect to DB
+            
+          # Image pull secrets if using a private registry
+          # imagePullSecrets:
+          # - name: regcred
