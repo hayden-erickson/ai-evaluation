@@ -1,0 +1,37 @@
+# Git
+.git
+.gitignore
+
+# Documentation
+*.md
+README.md
+CLAUDE.md
+
+# Build artifacts
+*.db
+*.exe
+*.test
+*.out
+*.log
+
+# Dependencies
+vendor/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Testing
+coverage.txt
+coverage.html
+
+# Kubernetes
+k8s/
+
+# Other
+prompts/
+examples/
+performance-testing/
+grading-rubric.tsv
