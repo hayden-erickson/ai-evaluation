@@ -50,3 +50,10 @@ Thumbs.db
 # Temporary files
 tmp/
 temp/
+
+# Kubernetes secrets (keep example files)
+k8s/secret.yaml
+
+# CronJob build artifacts
+cronjob
+cronjob-linux

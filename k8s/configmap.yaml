@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: habit-cronjob-config
+  namespace: default
+data:
+  # Database configuration
+  DB_HOST: "mysql-service"  # Replace with your MySQL service name
+  DB_PORT: "3306"
+  DB_USER: "root"           # Replace with your database user
+  DB_NAME: "habits"         # Replace with your database name
+  
+  # Twilio configuration
+  TWILIO_PHONE_NUMBER: ""   # Replace with your Twilio phone number (e.g., +1234567890)
