@@ -1,0 +1,29 @@
+# Git
+.git
+.gitignore
+
+# IDE
+.vscode
+.idea
+
+# Build artifacts
+*.db
+habits.db
+
+# Testing
+*_test.go
+examples/
+performance-testing/
+
+# Documentation
+README.md
+*.md
+!k8s/README.md
+
+# Kubernetes manifests (not needed in container)
+k8s/
+
+# Other
+.DS_Store
+*.log
+tmp/

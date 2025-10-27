@@ -1,0 +1,91 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: habit-log-notification
+  namespace: default
+spec:
+  # Run every day at 8:00 AM UTC
+  # Adjust the schedule according to your timezone needs
+  schedule: "0 8 * * *"
+  
+  # Keep the last 3 successful jobs and 1 failed job for debugging
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 1
+  
+  # Concurrency policy - don't run if previous job is still running
+  concurrencyPolicy: Forbid
+  
+  # Start deadline - if job hasn't started in 5 minutes, skip it
+  startingDeadlineSeconds: 300
+  
+  jobTemplate:
+    spec:
+      # Don't automatically retry on failure (manual intervention may be needed)
+      backoffLimit: 2
+      
+      # Job should complete within 10 minutes
+      activeDeadlineSeconds: 600
+      
+      template:
+        metadata:
+          labels:
+            app: habit-log-notification
+            component: cronjob
+        spec:
+          # Use a service account with necessary permissions
+          serviceAccountName: habit-cronjob-sa
+          
+          # Restart policy for the pod
+          restartPolicy: OnFailure
+          
+          containers:
+          - name: notification-job
+            # Replace with your actual image name and tag
+            image: your-registry/habit-cronjob:latest
+            imagePullPolicy: Always
+            
+            # Environment variables from ConfigMap
+            envFrom:
+            - configMapRef:
+                name: habit-cronjob-config
+            
+            # Environment variables from Secret
+            env:
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: habit-cronjob-secrets
+                  key: db-password
+            - name: TWILIO_ACCOUNT_SID
+              valueFrom:
+                secretKeyRef:
+                  name: habit-cronjob-secrets
+                  key: twilio-account-sid
+            - name: TWILIO_AUTH_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: habit-cronjob-secrets
+                  key: twilio-auth-token
+            
+            # Resource limits and requests
+            resources:
+              requests:
+                memory: "64Mi"
+                cpu: "100m"
+              limits:
+                memory: "256Mi"
+                cpu: "500m"
+            
+            # Security context
+            securityContext:
+              allowPrivilegeEscalation: false
+              runAsNonRoot: true
+              runAsUser: 1000
+              readOnlyRootFilesystem: true
+              capabilities:
+                drop:
+                - ALL
+          
+          # Image pull secrets (if using private registry)
+          # imagePullSecrets:
+          # - name: registry-credentials
