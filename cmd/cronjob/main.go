@@ -121,9 +121,9 @@ func processNotifications(db *sql.DB, twilioClient *twilio.RestClient, fromPhone
 			hasLogDay1 := false
 
 			for _, logEntry := range logs {
-				if logEntry.CreatedAt.After(oneDayAgo) {
+				if logEntry.CreatedAt.After(oneDayAgo) || logEntry.CreatedAt.Equal(oneDayAgo) {
 					hasLogDay2 = true
-				} else if logEntry.CreatedAt.After(twoDaysAgo) && logEntry.CreatedAt.Before(oneDayAgo) {
+				} else if (logEntry.CreatedAt.After(twoDaysAgo) || logEntry.CreatedAt.Equal(twoDaysAgo)) && logEntry.CreatedAt.Before(oneDayAgo) {
 					hasLogDay1 = true
 				}
 			}
@@ -174,7 +174,7 @@ func getAllUsers(db *sql.DB) ([]User, error) {
 // getUserLogsInTimeRange retrieves all logs for a user since the given time
 func getUserLogsInTimeRange(db *sql.DB, userID int64, since time.Time) ([]LogEntry, error) {
 	query := `
-		SELECT l.created_at, h.user_id
+		SELECT l.created_at
 		FROM logs l
 		INNER JOIN habits h ON l.habit_id = h.id
 		WHERE h.user_id = ? AND l.created_at >= ?
@@ -190,7 +190,8 @@ func getUserLogsInTimeRange(db *sql.DB, userID int64, since time.Time) ([]LogEnt
 	var logs []LogEntry
 	for rows.Next() {
 		var logEntry LogEntry
-		if err := rows.Scan(&logEntry.CreatedAt, &logEntry.UserID); err != nil {
+		logEntry.UserID = userID
+		if err := rows.Scan(&logEntry.CreatedAt); err != nil {
 			return nil, err
 		}
 		logs = append(logs, logEntry)
@@ -201,7 +202,12 @@ func getUserLogsInTimeRange(db *sql.DB, userID int64, since time.Time) ([]LogEnt
 
 // sendNotification sends an SMS notification via Twilio
 func sendNotification(client *twilio.RestClient, fromPhone string, user User, reason string) error {
-	message := fmt.Sprintf("Hi %s! We noticed you haven't logged your habits recently. Keep up your streak! 💪", user.Name)
+	var message string
+	if reason == "no logs in the past 2 days" {
+		message = fmt.Sprintf("Hi %s! We haven't seen any habit logs from you in the past 2 days. Don't break your streak! 💪", user.Name)
+	} else {
+		message = fmt.Sprintf("Hi %s! You logged yesterday but not today. Keep your momentum going! 💪", user.Name)
+	}
 
 	params := &twilioApi.CreateMessageParams{}
 	params.SetTo(user.PhoneNumber)
