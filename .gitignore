@@ -50,3 +50,7 @@ Thumbs.db
 # Temporary files
 tmp/
 temp/
+
+# Build binaries
+notification-job
+bin/

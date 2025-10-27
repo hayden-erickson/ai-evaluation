@@ -1,0 +1,82 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: habit-notification-job
+  namespace: default
+spec:
+  # Run every day at 6 PM UTC (adjust as needed)
+  schedule: "0 18 * * *"
+  
+  # Keep history of last 3 successful and 3 failed jobs
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  
+  # Concurrency policy - do not allow concurrent runs
+  concurrencyPolicy: Forbid
+  
+  jobTemplate:
+    spec:
+      # Retry failed jobs up to 2 times
+      backoffLimit: 2
+      
+      # Clean up completed jobs after 1 hour
+      ttlSecondsAfterFinished: 3600
+      
+      template:
+        metadata:
+          labels:
+            app: habit-notification-job
+        spec:
+          restartPolicy: OnFailure
+          
+          containers:
+          - name: notification-job
+            image: your-registry/notification-job:latest
+            imagePullPolicy: Always
+            
+            # Environment variables from ConfigMap
+            envFrom:
+            - configMapRef:
+                name: notification-job-config
+            
+            # Environment variables from Secret
+            env:
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: notification-job-secret
+                  key: DB_PASSWORD
+            - name: TWILIO_ACCOUNT_SID
+              valueFrom:
+                secretKeyRef:
+                  name: notification-job-secret
+                  key: TWILIO_ACCOUNT_SID
+            - name: TWILIO_AUTH_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: notification-job-secret
+                  key: TWILIO_AUTH_TOKEN
+            - name: TWILIO_PHONE_NUMBER
+              valueFrom:
+                secretKeyRef:
+                  name: notification-job-secret
+                  key: TWILIO_PHONE_NUMBER
+            
+            # Resource limits and requests
+            resources:
+              requests:
+                memory: "64Mi"
+                cpu: "100m"
+              limits:
+                memory: "128Mi"
+                cpu: "200m"
+            
+            # Security context
+            securityContext:
+              runAsNonRoot: true
+              runAsUser: 1000
+              allowPrivilegeEscalation: false
+              readOnlyRootFilesystem: true
+              capabilities:
+                drop:
+                - ALL

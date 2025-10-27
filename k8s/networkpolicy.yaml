@@ -1,0 +1,47 @@
+# Optional: Network Policy to restrict notification job network access
+# This policy allows the notification job to:
+# 1. Access the MySQL database
+# 2. Make HTTPS requests to Twilio API
+# 3. DNS resolution
+#
+# Apply this for enhanced security in production environments
+
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: habit-notification-job-netpol
+  namespace: default
+spec:
+  podSelector:
+    matchLabels:
+      app: habit-notification-job
+  policyTypes:
+    - Egress
+  egress:
+    # Allow DNS resolution
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              name: kube-system
+        - podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+      ports:
+        - protocol: UDP
+          port: 53
+    
+    # Allow MySQL database access
+    - to:
+        - podSelector:
+            matchLabels:
+              app: mysql
+      ports:
+        - protocol: TCP
+          port: 3306
+    
+    # Allow HTTPS to Twilio API (external)
+    - to:
+        - namespaceSelector: {}
+      ports:
+        - protocol: TCP
+          port: 443
