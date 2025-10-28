@@ -300,3 +300,104 @@ curl -X POST http://localhost:8080/habits \
 ## License
 
 MIT
+
+---
+
+# Habit Notifier Kubernetes CronJob
+
+This repository also includes a production-ready Kubernetes CronJob that:
+
+- Queries a MySQL database for each user's habit logs over the past 2 days (per-user timezone).
+- Sends an SMS via Twilio if either:
+  - No logs in the last two days, or
+  - A log exists on day 1 but no log on day 2.
+
+If both days have logs, no notification is sent.
+
+## App Source
+
+- Python app under `app/` with modules: `config.py`, `db.py`, `notifier.py`, `logic.py`, `health.py`, `main.py`.
+- Container spec: `Dockerfile`
+- Manifests: `k8s/namespace.yaml`, `k8s/serviceaccount.yaml`, `k8s/configmap.yaml`, `k8s/secret.yaml` (placeholders), `k8s/cronjob.yaml`, `k8s/mysql-ca-secret.example.yaml`.
+
+## Configuration (env)
+
+- `LOG_LEVEL` (default INFO)
+- `MYSQL_HOST` (required)
+- `MYSQL_PORT` (default 3306)
+- `MYSQL_DB` (required)
+- `MYSQL_USER` (required, Secret)
+- `MYSQL_PASSWORD` (required, Secret)
+- `TWILIO_ACCOUNT_SID` (required, Secret)
+- `TWILIO_AUTH_TOKEN` (required, Secret)
+- `TWILIO_FROM` (required; E.164 sender number)
+- `MYSQL_SSL_DISABLED` (default false). Set to `true` to disable TLS (not recommended).
+- `MYSQL_SSL_CA_PATH` (optional path, e.g. `/etc/mysql/certs/ca.crt`) to verify server cert.
+
+Note: Database tables are assumed to be `User`, `Habit`, and `Log` with fields described in the task. Time zones are read from `User.time_zone` (IANA tz).
+
+## Build and Push the Image
+
+```bash
+docker build -t your-registry/habit-notifier:latest .
+docker push your-registry/habit-notifier:latest
+```
+
+Update `k8s/cronjob.yaml` image to your pushed image.
+
+## Deploy
+
+```bash
+kubectl apply -f k8s/namespace.yaml
+kubectl -n habit-cron apply -f k8s/serviceaccount.yaml
+
+# Create runtime secrets securely (preferred over committing secret.yaml)
+kubectl -n habit-cron create secret generic habit-cron-secrets \
+  --from-literal=MYSQL_USER=youruser \
+  --from-literal=MYSQL_PASSWORD=yourpass \
+  --from-literal=TWILIO_ACCOUNT_SID=ACxxxxxxxx \
+  --from-literal=TWILIO_AUTH_TOKEN=xxxxxxxx
+
+# Optional: add a MySQL CA bundle if your server uses a custom CA
+# Provide a PEM at ./mysql-ca.crt and create the secret:
+kubectl -n habit-cron create secret generic mysql-ca \
+  --from-file=ca.crt=./mysql-ca.crt
+
+# Edit k8s/configmap.yaml to set MYSQL_* and TWILIO_FROM values as needed
+kubectl -n habit-cron apply -f k8s/configmap.yaml
+
+# Deploy the CronJob
+kubectl -n habit-cron apply -f k8s/cronjob.yaml
+```
+
+### Schedule
+
+- The manifest schedules the job at `0 14 * * *` (14:00 UTC). Adjust as needed.
+- The app evaluates the previous two local dates per user using their stored time zone.
+
+## Verify
+
+```bash
+kubectl -n habit-cron get cronjobs
+kubectl -n habit-cron get jobs
+kubectl -n habit-cron logs job/<job-name>
+```
+
+Exit code is non-zero if any per-user processing error occurred.
+
+## Security
+
+- Runs as non-root with seccomp `RuntimeDefault`, read-only root FS, and dropped Linux capabilities.
+- Secrets are mounted via environment variables. Do not commit real credentials to Git.
+- MySQL TLS supported with CA bundle mounted at `/etc/mysql/certs/ca.crt` and `MYSQL_SSL_CA_PATH` set accordingly. Prefer TLS over disabling it.
+- ServiceAccount has no RBAC permissions beyond default; the job does not call the Kubernetes API.
+
+## Uninstall
+
+```bash
+kubectl -n habit-cron delete -f k8s/cronjob.yaml
+kubectl -n habit-cron delete secret habit-cron-secrets mysql-ca --ignore-not-found
+kubectl -n habit-cron delete -f k8s/configmap.yaml
+kubectl -n habit-cron delete -f k8s/serviceaccount.yaml
+kubectl delete -f k8s/namespace.yaml
+```
