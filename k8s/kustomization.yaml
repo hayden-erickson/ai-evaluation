@@ -1,0 +1,26 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: habit-tracker
+
+resources:
+  - namespace.yaml
+  - configmap.yaml
+  - secret.yaml
+  - serviceaccount.yaml
+  - cronjob.yaml
+  - networkpolicy.yaml
+
+commonLabels:
+  app: habit-notifier
+  managed-by: kustomize
+
+# Add common annotations
+commonAnnotations:
+  description: "Habit tracking notification system"
+  
+# Image transformation (update this with your registry)
+images:
+  - name: your-registry/habit-notifier
+    newName: your-registry/habit-notifier
+    newTag: latest
