@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: habit-tracker-config
+  labels:
+    app: habit-tracker
+data:
+  MYSQL_HOST: "your-mysql-host"
+  MYSQL_DATABASE: "your-database-name"
