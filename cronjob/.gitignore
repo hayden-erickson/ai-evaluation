@@ -1,0 +1,42 @@
+# Binaries
+habit-notifier
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test binary
+*.test
+
+# Output of the go coverage tool
+*.out
+
+# Dependency directories
+vendor/
+
+# Go workspace file
+go.work
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Kubernetes secrets (never commit)
+k8s/secret.yaml.local
+k8s/*-secret.yaml
+*secret*.yaml
+
+# Temporary files
+*.tmp
+*.log
+
