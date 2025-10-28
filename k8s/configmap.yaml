@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: habit-notifier-config
+  namespace: habit-tracker
+  labels:
+    app: habit-notifier
+data:
+  # Database configuration (non-sensitive)
+  DB_HOST: "mysql-service.database.svc.cluster.local"
+  DB_PORT: "3306"
+  DB_NAME: "habit_tracker"
+  
+  # Twilio configuration (non-sensitive)
+  TWILIO_FROM_NUMBER: "+1234567890"  # Replace with your Twilio number

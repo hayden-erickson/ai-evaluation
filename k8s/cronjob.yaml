@@ -1,0 +1,136 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: habit-notifier
+  namespace: habit-tracker
+  labels:
+    app: habit-notifier
+    version: v1
+spec:
+  # Run every day at 9 AM UTC (adjust as needed)
+  schedule: "0 9 * * *"
+  
+  # Timezone support (requires Kubernetes 1.25+)
+  timeZone: "UTC"
+  
+  # Keep last 3 successful and 1 failed job for debugging
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 1
+  
+  # Concurrency policy: Don't allow concurrent runs
+  concurrencyPolicy: Forbid
+  
+  # If job misses scheduled time, don't start it
+  startingDeadlineSeconds: 300
+  
+  jobTemplate:
+    metadata:
+      labels:
+        app: habit-notifier
+        version: v1
+    spec:
+      # Job timeout: 10 minutes
+      activeDeadlineSeconds: 600
+      
+      # Retry policy
+      backoffLimit: 2
+      
+      template:
+        metadata:
+          labels:
+            app: habit-notifier
+            version: v1
+          annotations:
+            # Prometheus scraping annotations (if using Prometheus)
+            prometheus.io/scrape: "true"
+            prometheus.io/port: "8080"
+        spec:
+          serviceAccountName: habit-notifier-sa
+          restartPolicy: OnFailure
+          
+          # Security context for the pod
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+            fsGroup: 1000
+            seccompProfile:
+              type: RuntimeDefault
+          
+          containers:
+          - name: habit-notifier
+            # Replace with your actual image repository and tag
+            image: your-registry/habit-notifier:latest
+            imagePullPolicy: Always
+            
+            # Security context for the container
+            securityContext:
+              allowPrivilegeEscalation: false
+              readOnlyRootFilesystem: true
+              runAsNonRoot: true
+              runAsUser: 1000
+              capabilities:
+                drop:
+                  - ALL
+            
+            # Resource limits and requests
+            resources:
+              requests:
+                memory: "128Mi"
+                cpu: "100m"
+              limits:
+                memory: "256Mi"
+                cpu: "500m"
+            
+            # Environment variables from ConfigMap
+            envFrom:
+            - configMapRef:
+                name: habit-notifier-config
+            
+            # Environment variables from Secret
+            env:
+            - name: DB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: habit-notifier-secrets
+                  key: DB_USER
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: habit-notifier-secrets
+                  key: DB_PASSWORD
+            - name: TWILIO_ACCOUNT_SID
+              valueFrom:
+                secretKeyRef:
+                  name: habit-notifier-secrets
+                  key: TWILIO_ACCOUNT_SID
+            - name: TWILIO_AUTH_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: habit-notifier-secrets
+                  key: TWILIO_AUTH_TOKEN
+            
+            # Liveness probe (optional for CronJob, but good practice)
+            livenessProbe:
+              exec:
+                command:
+                - pgrep
+                - -f
+                - python
+              initialDelaySeconds: 5
+              periodSeconds: 10
+              timeoutSeconds: 5
+              failureThreshold: 3
+            
+            # Volume mounts for temporary files
+            volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+          
+          # Volumes
+          volumes:
+          - name: tmp
+            emptyDir: {}
+          
+          # Image pull secrets (if using private registry)
+          # imagePullSecrets:
+          # - name: registry-credentials

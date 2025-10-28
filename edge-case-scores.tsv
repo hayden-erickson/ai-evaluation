@@ -1,0 +1,17 @@
+Category	Component	Score	Rating
+Main Application	main.go	4	Strong
+Database Layer	pkg/database/database.go	3	Adequate
+HTTP Handlers	internal/handler/user_handler.go	3	Adequate
+HTTP Handlers	internal/handler/habit_handler.go	3	Adequate
+HTTP Handlers	internal/handler/log_handler.go	3	Adequate
+Middleware	internal/handler/middleware.go	3	Adequate
+Business Logic	internal/service/user_service.go	3	Adequate
+Business Logic	internal/service/habit_service.go	3	Adequate
+Business Logic	internal/service/log_service.go	3	Adequate
+Data Access	internal/repository/user_repository.go	3	Adequate
+Data Access	internal/repository/habit_repository.go	3	Adequate
+Data Access	internal/repository/log_repository.go	3	Adequate
+Security	pkg/auth/jwt.go	2	Weak
+Validation	pkg/validator/validator.go	3	Adequate
+Validation	pkg/validator/duration_validator.go	3	Adequate
+Overall Codebase	Average	3.0	Adequate

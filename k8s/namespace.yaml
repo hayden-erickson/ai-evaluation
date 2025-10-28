@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: habit-tracker
+  labels:
+    name: habit-tracker
+    app: habit-notifier
