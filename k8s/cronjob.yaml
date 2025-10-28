@@ -1,0 +1,117 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: habit-notifier
+  namespace: habit-cron
+spec:
+  schedule: "0 14 * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 1
+      activeDeadlineSeconds: 600
+      ttlSecondsAfterFinished: 3600
+      template:
+        spec:
+          restartPolicy: Never
+          serviceAccountName: habit-cron-sa
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 10001
+            runAsGroup: 10001
+            fsGroup: 10001
+          containers:
+            - name: worker
+              image: your-registry/habit-notifier:latest
+              imagePullPolicy: IfNotPresent
+              env:
+                - name: LOG_LEVEL
+                  valueFrom:
+                    configMapKeyRef:
+                      name: habit-cron-config
+                      key: LOG_LEVEL
+                - name: MYSQL_HOST
+                  valueFrom:
+                    configMapKeyRef:
+                      name: habit-cron-config
+                      key: MYSQL_HOST
+                - name: MYSQL_PORT
+                  valueFrom:
+                    configMapKeyRef:
+                      name: habit-cron-config
+                      key: MYSQL_PORT
+                - name: MYSQL_DB
+                  valueFrom:
+                    configMapKeyRef:
+                      name: habit-cron-config
+                      key: MYSQL_DB
+                - name: TWILIO_FROM
+                  valueFrom:
+                    configMapKeyRef:
+                      name: habit-cron-config
+                      key: TWILIO_FROM
+                - name: MYSQL_SSL_DISABLED
+                  valueFrom:
+                    configMapKeyRef:
+                      name: habit-cron-config
+                      key: MYSQL_SSL_DISABLED
+                - name: MYSQL_SSL_CA_PATH
+                  valueFrom:
+                    configMapKeyRef:
+                      name: habit-cron-config
+                      key: MYSQL_SSL_CA_PATH
+                - name: MYSQL_USER
+                  valueFrom:
+                    secretKeyRef:
+                      name: habit-cron-secrets
+                      key: MYSQL_USER
+                - name: MYSQL_PASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: habit-cron-secrets
+                      key: MYSQL_PASSWORD
+                - name: TWILIO_ACCOUNT_SID
+                  valueFrom:
+                    secretKeyRef:
+                      name: habit-cron-secrets
+                      key: TWILIO_ACCOUNT_SID
+                - name: TWILIO_AUTH_TOKEN
+                  valueFrom:
+                    secretKeyRef:
+                      name: habit-cron-secrets
+                      key: TWILIO_AUTH_TOKEN
+              ports:
+                - name: http
+                  containerPort: 8080
+              resources:
+                requests:
+                  cpu: 50m
+                  memory: 64Mi
+                limits:
+                  cpu: 500m
+                  memory: 256Mi
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                capabilities:
+                  drop: ["ALL"]
+                seccompProfile:
+                  type: RuntimeDefault
+              startupProbe:
+                httpGet:
+                  path: /healthz
+                  port: 8080
+                initialDelaySeconds: 1
+                periodSeconds: 5
+                failureThreshold: 6
+              volumeMounts:
+                - name: mysql-ca
+                  mountPath: /etc/mysql/certs
+                  readOnly: true
+          volumes:
+            - name: mysql-ca
+              secret:
+                secretName: mysql-ca
+                optional: true
