@@ -1,0 +1,43 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: default
+
+# Common labels applied to all resources
+commonLabels:
+  app: habit-notifier
+  managed-by: kustomize
+
+# Resources to deploy
+resources:
+  - configmap.yaml
+  - secret.yaml
+  - serviceaccount.yaml
+  - cronjob.yaml
+
+# Images to use
+images:
+  - name: your-registry/habit-notifier
+    newName: your-registry/habit-notifier
+    newTag: latest
+
+# ConfigMap generator (alternative to configmap.yaml)
+# configMapGenerator:
+#   - name: habit-notifier-config
+#     literals:
+#       - DB_HOST=mysql.database.svc.cluster.local
+#       - DB_PORT=3306
+#       - DB_NAME=habits_db
+#       - LOG_LEVEL=info
+#       - TZ=UTC
+
+# Secret generator (alternative to secret.yaml)
+# secretGenerator:
+#   - name: habit-notifier-secret
+#     literals:
+#       - DB_USER=your_db_user
+#       - DB_PASSWORD=your_db_password
+#       - TWILIO_ACCOUNT_SID=your_twilio_account_sid
+#       - TWILIO_AUTH_TOKEN=your_twilio_auth_token
+#       - TWILIO_FROM_NUMBER=+1234567890
+
