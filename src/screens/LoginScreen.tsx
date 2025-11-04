@@ -68,7 +68,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
         phone_number: phoneNumber.trim(),
         password,
       });
-    } catch (err) {
+    } catch {
       // Error is already handled by AuthContext
       Alert.alert('Login Failed', error || 'Please check your credentials and try again.');
     }

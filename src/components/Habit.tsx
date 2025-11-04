@@ -2,7 +2,7 @@
  * Habit component displaying habit details, streak, and logs
  */
 
-import React, {useState, useEffect} from 'react';
+import React, {useState, useEffect, useCallback} from 'react';
 import {
   View,
   Text,
@@ -42,32 +42,28 @@ export const HabitComponent: React.FC<HabitComponentProps> = ({
   onLogCreated,
 }) => {
   const [logs, setLogs] = useState<Log[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
   const [showLogs, setShowLogs] = useState(false);
   const [selectedLog, setSelectedLog] = useState<Log | null>(null);
   const [showLogModal, setShowLogModal] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
 
-  // Load logs when component mounts
-  useEffect(() => {
-    loadLogs();
-  }, [habit.id]);
-
   /**
    * Load logs for the habit
    */
-  const loadLogs = async () => {
+  const loadLogs = useCallback(async () => {
     try {
-      setIsLoading(true);
       const habitLogs = await api.getHabitLogs(habit.id);
       setLogs(habitLogs);
     } catch (error) {
       console.error('Error loading logs:', error);
       Alert.alert('Error', 'Failed to load habit logs');
-    } finally {
-      setIsLoading(false);
     }
-  };
+  }, [habit.id]);
+
+  // Load logs when component mounts
+  useEffect(() => {
+    loadLogs();
+  }, [loadLogs]);
 
   /**
    * Create a new log for today

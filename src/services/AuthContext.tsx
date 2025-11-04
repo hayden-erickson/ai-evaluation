@@ -93,9 +93,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({children}) => {
     try {
       setError(null);
       setIsLoading(true);
-      const response = await api.register(data);
-      await api.setToken(response.token);
-      setUser(response.user);
+      // Register returns just the user, not a token
+      await api.register(data);
+      // Automatically login after successful registration
+      await login({
+        phone_number: data.phone_number,
+        password: data.password,
+      });
     } catch (err) {
       if (err instanceof ApiError) {
         setError(err.message);

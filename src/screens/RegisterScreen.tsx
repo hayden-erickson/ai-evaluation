@@ -86,7 +86,7 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({
         password,
         time_zone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC',
       });
-    } catch (err) {
+    } catch {
       // Error is already handled by AuthContext
       Alert.alert('Registration Failed', error || 'Please try again.');
     }

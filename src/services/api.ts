@@ -74,12 +74,13 @@ const apiRequest = async <T>(
   options: RequestInit = {},
 ): Promise<T> => {
   const token = await getToken();
-  const headers: HeadersInit = {
+  const headers: Record<string, string> = {
     'Content-Type': 'application/json',
-    ...options.headers,
+    ...(options.headers as Record<string, string>),
   };
 
   if (token) {
+    // eslint-disable-next-line dot-notation
     headers['Authorization'] = `Bearer ${token}`;
   }
 
@@ -100,7 +101,7 @@ const apiRequest = async <T>(
 
   // Handle empty responses (like 204 No Content)
   const text = await response.text();
-  return text ? JSON.parse(text) : null;
+  return text ? JSON.parse(text) : (null as any);
 };
 
 // Authentication API calls
@@ -110,8 +111,8 @@ const apiRequest = async <T>(
  */
 export const register = async (
   data: RegisterRequest,
-): Promise<LoginResponse> => {
-  return apiRequest<LoginResponse>('/users/register', {
+): Promise<User> => {
+  return apiRequest<User>('/users/register', {
     method: 'POST',
     body: JSON.stringify(data),
   });
