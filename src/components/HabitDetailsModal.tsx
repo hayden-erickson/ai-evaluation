@@ -218,7 +218,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     marginTop: Spacing.lg,
-    gap: Spacing.md,
   },
   
   button: {
@@ -227,6 +226,7 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.md,
     alignItems: 'center',
     justifyContent: 'center',
+    marginHorizontal: Spacing.xs,
   },
   
   cancelButton: {

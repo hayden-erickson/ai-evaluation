@@ -263,11 +263,11 @@ const styles = StyleSheet.create({
   
   headerActions: {
     flexDirection: 'row',
-    gap: Spacing.sm,
   },
   
   iconButton: {
     padding: Spacing.xs,
+    marginLeft: Spacing.sm,
   },
   
   iconText: {
@@ -290,12 +290,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: Spacing.md,
-    gap: Spacing.sm,
   },
   
   streakLabel: {
     fontSize: Typography.body,
     color: Colors.textSecondary,
+    marginRight: Spacing.sm,
   },
   
   streakBadge: {
@@ -305,13 +305,13 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.xs,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.xs,
   },
   
   streakCount: {
     fontSize: Typography.h3,
     fontWeight: Typography.bold,
     color: Colors.textPrimary,
+    marginRight: Spacing.xs,
   },
   
   streakUnit: {

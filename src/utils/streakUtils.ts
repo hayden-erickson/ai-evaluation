@@ -22,39 +22,10 @@ export function calculateStreak(logs: Log[]): number {
     (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
   );
 
-  let streak = 0;
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-
-  // Check each log starting from most recent
-  for (let i = 0; i < sortedLogs.length; i++) {
-    const logDate = new Date(sortedLogs[i].created_at);
-    logDate.setHours(0, 0, 0, 0);
-
-    // Calculate expected date for this position in the streak
-    // The first log should be today or yesterday, subsequent logs continue the pattern
-    const expectedDate = new Date(today);
-    expectedDate.setDate(today.getDate() - streak);
-
-    const daysDifference = Math.floor(
-      (expectedDate.getTime() - logDate.getTime()) / (1000 * 60 * 60 * 24)
-    );
-
-    // If log is on the expected day, increment streak
-    if (daysDifference === 0) {
-      streak++;
-    } 
-    // If log is 1 day before expected (user skipped a day), still count it
-    else if (daysDifference === 1) {
-      streak++;
-    } 
-    // If gap is more than 1 day, streak is broken
-    else if (daysDifference > 1) {
-      break;
-    }
-  }
-
-  // Check if the streak is still active (last log should be recent)
+  
+  // Check if the most recent log is within allowed range (today or yesterday)
   const mostRecentLog = new Date(sortedLogs[0].created_at);
   mostRecentLog.setHours(0, 0, 0, 0);
   
@@ -65,6 +36,30 @@ export function calculateStreak(logs: Log[]): number {
   // If more than 1 day has passed since last log, streak is broken
   if (daysSinceLastLog > 1) {
     return 0;
+  }
+
+  let streak = 1; // Start with the most recent log
+  let previousLogDate = mostRecentLog;
+
+  // Check each subsequent log
+  for (let i = 1; i < sortedLogs.length; i++) {
+    const currentLogDate = new Date(sortedLogs[i].created_at);
+    currentLogDate.setHours(0, 0, 0, 0);
+
+    const daysBetween = Math.floor(
+      (previousLogDate.getTime() - currentLogDate.getTime()) / (1000 * 60 * 60 * 24)
+    );
+
+    // If logs are consecutive days (1 day apart) or allow 1-day skip (2 days apart)
+    if (daysBetween === 1 || daysBetween === 2) {
+      streak++;
+      previousLogDate = currentLogDate;
+    } 
+    // If gap is more than 2 days, streak is broken
+    else if (daysBetween > 2) {
+      break;
+    }
+    // If daysBetween === 0, it's the same day, skip this log
   }
 
   return streak;
