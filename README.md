@@ -116,6 +116,102 @@ cd ..
    npm run android
    ```
 
+   **Start Metro bundler separately (if needed):**
+   ```bash
+   npm start
+   ```
+
+## Using the App
+
+### First Time Setup
+
+1. **Start the Backend Server:**
+   ```bash
+   go run main.go
+   ```
+   The server will create a SQLite database (`habits.db`) on first run.
+
+2. **Launch the React Native App:**
+   - For iOS: `npm run ios`
+   - For Android: `npm run android`
+
+3. **Create an Account:**
+   - Tap "Sign Up" on the login screen
+   - Enter your name, phone number (any format), and password (min 8 characters)
+   - Tap "Sign Up" to create your account
+   - You'll be automatically logged in
+
+### Managing Habits
+
+1. **Create a Habit:**
+   - On the home screen, tap "+ Add New Habit"
+   - Enter a name and optional description
+   - Tap "Save"
+
+2. **Track Your Streak:**
+   - Tap "+ Log Today" on any habit to record completion
+   - Add optional notes about your progress
+   - Your streak counter will update automatically
+   - **Note:** You can skip one day without breaking your streak!
+
+3. **View History:**
+   - Tap "Show History" on any habit
+   - See the last 14 days with colored indicators
+   - Green = logged, Gray = not logged
+   - Tap any day with a log to view/edit notes
+
+4. **Edit or Delete:**
+   - Tap the ✏️ icon to edit habit details
+   - Tap the 🗑️ icon to delete (with confirmation)
+
+### Streak Calculation
+
+The app implements a forgiving streak system:
+- ✅ Log your habit daily to maintain your streak
+- ✅ You can skip ONE day without breaking your streak
+- ❌ Missing two consecutive days resets your streak to 0
+- 🎯 Multiple logs on the same day count as one
+
+Example: If you log on Monday, skip Tuesday, then log on Wednesday, your streak continues!
+
+## App Features
+
+### Design & UI
+- **Modern Minimal Design** - Clean interface with sans-serif fonts
+- **Pastel Color Scheme** - Soft, easy-on-the-eyes colors (lavender, soft blue, peach)
+- **Rounded Corners** - Smooth, modern UI elements throughout
+- **Responsive Layout** - Properly sized components that fit on screen
+- **Pull to Refresh** - Refresh your habits list anytime
+
+### Security
+- **JWT Authentication** - Secure token-based authentication
+- **Password Hashing** - Argon2id algorithm for password security
+- **Input Validation** - All forms validate input before submission
+- **Error Handling** - Graceful error messages for all failures
+- **Secure Storage** - Auth tokens stored securely using AsyncStorage
+
+### Data Management
+- **Real-time Updates** - Changes reflect immediately
+- **Automatic Refresh** - Data updates after any modification
+- **Offline-First Ready** - Built with AsyncStorage for future offline support
+```
+
+3. Configure the API URL:
+   - The app is configured to connect to `http://localhost:8080` by default
+   - To connect to a different server, update the `API_URL` in `src/services/api.ts`
+
+4. Run the React Native app:
+
+   **For iOS:**
+   ```bash
+   npm run ios
+   ```
+
+   **For Android:**
+   ```bash
+   npm run android
+   ```
+
    **Start Metro bundler separately:**
    ```bash
    npm start
