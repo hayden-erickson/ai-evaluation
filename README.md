@@ -1,402 +1,329 @@
-<<<<<<< HEAD
-# Habit Tracker REST API
+# Habit Tracker App
 
-A RESTful API built in Go for tracking user habits with JWT-based authentication, SQLite database, and comprehensive security features.
+A beautiful, modern React Native mobile application for tracking daily habits and building streaks. This app helps users maintain consistency by visualizing their progress and allowing them to skip one day before their streak resets.
 
 ## Features
 
-- **JWT-based authentication** - Secure token-based authentication
-- **Input validation** - Comprehensive request validation for all endpoints
-- **Error logging** - All errors are logged with appropriate context
-- **HTTP status codes** - Proper error responses with meaningful messages
-- **Modular architecture** - Separation of concerns with repository and service layers
-- **Dependency injection** - Clean, testable code structure
-- **Security headers** - XSS protection, clickjacking prevention, CSP
-- **RBAC** - Role-based access control (users can only access their own data)
-- **SQLite database** - Lightweight database for local development
+- 🎯 **Habit Management**: Create, edit, and delete habits with names and descriptions
+- 🔥 **Streak Tracking**: Visual streak counter with one-day skip allowance
+- 📅 **Daily Logging**: Log habit completions with optional notes
+- 📊 **Activity View**: See your last 14 days of activity at a glance
+- 🔐 **Secure Authentication**: User registration and login with JWT tokens
+- 🎨 **Modern UI**: Pastel color scheme with rounded corners and clean typography
+- ✨ **Smooth UX**: Intuitive modals, pull-to-refresh, and confirmation dialogs
 
-## Architecture
+## Screenshots
 
-The application follows a clean, modular architecture:
+The app features a clean, minimal design with:
+- Pastel color palette (lavender, soft blue, soft pink, soft green)
+- Sans-serif fonts throughout
+- Rounded corners on all components
+- Clear visual feedback for logged days
+- Expandable habit cards with streak history
 
-### Package Structure
+## Tech Stack
 
-- **`/models`** - Data structures and validation logic (User, Habit, Log)
-- **`/repository`** - Database operations and data access layer
-- **`/service`** - Business logic and service layer
-- **`/handlers`** - HTTP request handlers
-- **`/middleware`** - Authentication, logging, and security middleware
-- **`/config`** - Database configuration and migrations
-- **`/utils`** - Utility functions (JWT, password hashing)
-- **`/migrations`** - SQL migration files
+- **Frontend**: React Native with TypeScript
+- **State Management**: React Context API
+- **Storage**: AsyncStorage for authentication tokens
+- **Backend**: Go REST API (included in this repository)
+- **Database**: SQLite (for the backend)
 
 ## Prerequisites
 
-- Go 1.21 or higher
-- SQLite3
+Before running this app, make sure you have:
+
+- Node.js (v18 or higher)
+- npm or yarn
+- React Native development environment set up
+  - For iOS: Xcode (Mac only)
+  - For Android: Android Studio and Android SDK
+- Go (v1.21 or higher) for running the backend API
 
 ## Installation
 
-1. Clone the repository:
+### 1. Clone the Repository
+
 ```bash
-git clone https://github.com/hayden-erickson/ai-evaluation.git
-cd ai-evaluation
+git clone <repository-url>
+cd claude-sonnet-4.5
 ```
 
-2. Install dependencies:
+### 2. Install Dependencies
+
 ```bash
-go mod download
+npm install
+# or
+yarn install
 ```
 
-3. (Optional) Set environment variables:
+### 3. Install iOS Dependencies (iOS only)
+
 ```bash
-export PORT=8080                    # Default: 8080
-export JWT_SECRET=your-secret-key   # Default: "default-secret-key-change-in-production"
-export DB_PATH=habits.db            # Default: habits.db
+cd ios
+pod install
+cd ..
 ```
 
-## Running the Application
+## Running the App
+
+### Step 1: Start the Backend API
+
+The app requires the Go backend API to be running. In a terminal window:
 
 ```bash
+# Set environment variables (optional)
+export PORT=8080
+export JWT_SECRET=your-secret-key
+export DB_PATH=habits.db
+
+# Run the API server
 go run main.go
 ```
 
-The server will start on port 8080 (or the port specified in the PORT environment variable).
+The API will start on `http://localhost:8080` by default.
 
-## API Endpoints
+### Step 2: Configure API Endpoint
 
-### Authentication
+If your backend is running on a different host/port, update the API base URL in:
 
-#### Register a new user
-```http
-POST /users/register
-Content-Type: application/json
-
-{
-  "name": "John Doe",
-  "phone_number": "+1234567890",
-  "password": "securepassword123",
-  "time_zone": "America/New_York",
-  "profile_image_url": "https://example.com/avatar.jpg"
-}
+```typescript
+// src/services/api.ts
+const API_BASE_URL = 'http://localhost:8080'; // Change this as needed
 ```
 
-#### Login
-```http
-POST /users/login
-Content-Type: application/json
+**Important for Android Emulator**: If testing on an Android emulator, use `http://10.0.2.2:8080` instead of `http://localhost:8080`.
 
-{
-  "phone_number": "+1234567890",
-  "password": "securepassword123"
-}
+**Important for Physical Devices**: Use your computer's local IP address (e.g., `http://192.168.1.100:8080`).
 
-Response:
-{
-  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-  "user": {
-    "id": 1,
-    "name": "John Doe",
-    "phone_number": "+1234567890",
-    "time_zone": "America/New_York",
-    "profile_image_url": "https://example.com/avatar.jpg",
-    "created_at": "2024-01-01T00:00:00Z"
-  }
-}
-```
-
-### User Endpoints (Requires Authentication)
-
-All protected endpoints require the `Authorization` header:
-```
-Authorization: Bearer <token>
-```
-
-#### Get user details
-```http
-GET /users/{id}
-```
-
-#### Update user
-```http
-PUT /users/{id}
-Content-Type: application/json
-
-{
-  "name": "Jane Doe",
-  "time_zone": "America/Los_Angeles"
-}
-```
-
-#### Delete user
-```http
-DELETE /users/{id}
-```
-
-### Habit Endpoints (Requires Authentication)
-
-#### Create a habit
-```http
-POST /habits
-Content-Type: application/json
-Authorization: Bearer <token>
-
-{
-  "name": "Morning Exercise",
-  "description": "30 minutes of cardio"
-}
-```
-
-#### Get all user habits
-```http
-GET /habits
-Authorization: Bearer <token>
-```
-
-#### Get a specific habit
-```http
-GET /habits/{id}
-Authorization: Bearer <token>
-```
-
-#### Update a habit
-```http
-PUT /habits/{id}
-Content-Type: application/json
-Authorization: Bearer <token>
-
-{
-  "name": "Evening Exercise",
-  "description": "45 minutes of yoga"
-}
-```
-
-#### Delete a habit
-```http
-DELETE /habits/{id}
-Authorization: Bearer <token>
-```
-
-### Log Endpoints (Requires Authentication)
-
-#### Create a log for a habit
-```http
-POST /habits/{habit_id}/logs
-Content-Type: application/json
-Authorization: Bearer <token>
-
-{
-  "notes": "Completed 30 minutes of running"
-}
-```
-
-#### Get all logs for a habit
-```http
-GET /habits/{habit_id}/logs
-Authorization: Bearer <token>
-```
-
-#### Get a specific log
-```http
-GET /logs/{id}
-Authorization: Bearer <token>
-```
-
-#### Update a log
-```http
-PUT /logs/{id}
-Content-Type: application/json
-Authorization: Bearer <token>
-
-{
-  "notes": "Updated: Completed 45 minutes of running"
-}
-```
-
-#### Delete a log
-```http
-DELETE /logs/{id}
-Authorization: Bearer <token>
-```
-
-### Health Check
-
-```http
-GET /health
-
-Response: OK
-```
-
-## Database Schema
-
-### Users Table
-- `id` - INTEGER PRIMARY KEY AUTOINCREMENT
-- `profile_image_url` - TEXT
-- `name` - TEXT NOT NULL
-- `time_zone` - TEXT NOT NULL
-- `phone_number` - TEXT NOT NULL (indexed)
-- `password_hash` - TEXT NOT NULL
-- `created_at` - DATETIME DEFAULT CURRENT_TIMESTAMP
-
-### Habits Table
-- `id` - INTEGER PRIMARY KEY AUTOINCREMENT
-- `user_id` - INTEGER NOT NULL (foreign key to users)
-- `name` - TEXT NOT NULL
-- `description` - TEXT
-- `created_at` - DATETIME DEFAULT CURRENT_TIMESTAMP
-
-### Logs Table
-- `id` - INTEGER PRIMARY KEY AUTOINCREMENT
-- `habit_id` - INTEGER NOT NULL (foreign key to habits)
-- `notes` - TEXT
-- `created_at` - DATETIME DEFAULT CURRENT_TIMESTAMP
-
-## Security Features
-
-- **Password Hashing** - Argon2id algorithm for secure password storage
-- **JWT Authentication** - Token-based authentication with expiration
-- **RBAC** - Users can only access their own resources
-- **Input Validation** - All requests are validated before processing
-- **Security Headers** - XSS protection, CSP, clickjacking prevention
-- **Error Logging** - Comprehensive error logging for debugging
-
-## Testing
-
-To test the API, you can use tools like:
-- `curl`
-- Postman
-- HTTPie
-
-Example with curl:
+### Step 3: Start Metro Bundler
 
 ```bash
-# Register a user
-curl -X POST http://localhost:8080/users/register \
-  -H "Content-Type: application/json" \
-  -d '{
-    "name": "John Doe",
-    "phone_number": "+1234567890",
-    "password": "securepassword123",
-    "time_zone": "America/New_York"
-  }'
-
-# Login
-TOKEN=$(curl -X POST http://localhost:8080/users/login \
-  -H "Content-Type: application/json" \
-  -d '{
-    "phone_number": "+1234567890",
-    "password": "securepassword123"
-  }' | jq -r '.token')
-
-# Create a habit
-curl -X POST http://localhost:8080/habits \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer $TOKEN" \
-  -d '{
-    "name": "Morning Exercise",
-    "description": "30 minutes of cardio"
-  }'
-```
-
-## License
-
-MIT
-=======
-This is a new [**React Native**](https://reactnative.dev) project, bootstrapped using [`@react-native-community/cli`](https://github.com/react-native-community/cli).
-
-# Getting Started
-
-> **Note**: Make sure you have completed the [Set Up Your Environment](https://reactnative.dev/docs/set-up-your-environment) guide before proceeding.
-
-## Step 1: Start Metro
-
-First, you will need to run **Metro**, the JavaScript build tool for React Native.
-
-To start the Metro dev server, run the following command from the root of your React Native project:
-
-```sh
-# Using npm
 npm start
-
-# OR using Yarn
+# or
 yarn start
 ```
 
-## Step 2: Build and run your app
+### Step 4: Run the App
 
-With Metro running, open a new terminal window/pane from the root of your React Native project, and use one of the following commands to build and run your Android or iOS app:
+In a separate terminal:
 
-### Android
-
-```sh
-# Using npm
-npm run android
-
-# OR using Yarn
-yarn android
-```
-
-### iOS
-
-For iOS, remember to install CocoaPods dependencies (this only needs to be run on first clone or after updating native deps).
-
-The first time you create a new project, run the Ruby bundler to install CocoaPods itself:
-
-```sh
-bundle install
-```
-
-Then, and every time you update your native dependencies, run:
-
-```sh
-bundle exec pod install
-```
-
-For more information, please visit [CocoaPods Getting Started guide](https://guides.cocoapods.org/using/getting-started.html).
-
-```sh
-# Using npm
+**For iOS:**
+```bash
 npm run ios
-
-# OR using Yarn
+# or
 yarn ios
 ```
 
-If everything is set up correctly, you should see your new app running in the Android Emulator, iOS Simulator, or your connected device.
+**For Android:**
+```bash
+npm run android
+# or
+yarn android
+```
 
-This is one way to run your app — you can also build it directly from Android Studio or Xcode.
+## Usage
 
-## Step 3: Modify your app
+### First Time Setup
 
-Now that you have successfully run the app, let's make changes!
+1. **Register**: When you first open the app, tap "Register" to create an account
+   - Enter your name, phone number, time zone, and password (min 8 characters)
+   - Phone number is used as your unique identifier
 
-Open `App.tsx` in your text editor of choice and make some changes. When you save, your app will automatically update and reflect these changes — this is powered by [Fast Refresh](https://reactnative.dev/docs/fast-refresh).
+2. **Login**: After registration, you'll be automatically logged in
+   - Use your phone number and password to login on subsequent sessions
 
-When you want to forcefully reload, for example to reset the state of your app, you can perform a full reload:
+### Managing Habits
 
-- **Android**: Press the <kbd>R</kbd> key twice or select **"Reload"** from the **Dev Menu**, accessed via <kbd>Ctrl</kbd> + <kbd>M</kbd> (Windows/Linux) or <kbd>Cmd ⌘</kbd> + <kbd>M</kbd> (macOS).
-- **iOS**: Press <kbd>R</kbd> in iOS Simulator.
+1. **Create a Habit**: 
+   - Tap the "+" floating action button
+   - Enter a name (required) and optional description
+   - Tap "Create"
 
-## Congratulations! :tada:
+2. **Edit a Habit**:
+   - Tap "✏️ Edit" on any habit card
+   - Update the details
+   - Tap "Update"
 
-You've successfully run and modified your React Native App. :partying_face:
+3. **Delete a Habit**:
+   - Tap "🗑️ Delete" on any habit card
+   - Confirm the deletion (this also deletes all logs)
 
-### Now what?
+### Logging Habits
 
-- If you want to add this new React Native code to an existing application, check out the [Integration guide](https://reactnative.dev/docs/integration-with-existing-apps).
-- If you're curious to learn more about React Native, check out the [docs](https://reactnative.dev/docs/getting-started).
+1. **Log Today**:
+   - Tap "+ Log Today" button on a habit
+   - Add optional notes about your progress
+   - Tap "Save"
 
-# Troubleshooting
+2. **Edit a Log**:
+   - Tap to expand a habit to see recent activity
+   - Tap on any day with a log (green square)
+   - Update the notes
+   - Tap "Update"
 
-If you're having issues getting the above steps to work, see the [Troubleshooting](https://reactnative.dev/docs/troubleshooting) page.
+### Understanding Streaks
 
-# Learn More
+- **Streak Counter**: Shows the number of consecutive days you've logged this habit
+- **One-Day Grace**: You can skip one day without breaking your streak
+- **Two Days**: Missing two consecutive days will reset your streak to 0
+- **Visual Feedback**: 
+  - Green squares = Days with logs
+  - Gray squares = Days without logs
+  - Blue border = Today
 
-To learn more about React Native, take a look at the following resources:
+## Project Structure
 
-- [React Native Website](https://reactnative.dev) - learn more about React Native.
-- [Getting Started](https://reactnative.dev/docs/environment-setup) - an **overview** of React Native and how setup your environment.
-- [Learn the Basics](https://reactnative.dev/docs/getting-started) - a **guided tour** of the React Native **basics**.
-- [Blog](https://reactnative.dev/blog) - read the latest official React Native **Blog** posts.
-- [`@facebook/react-native`](https://github.com/facebook/react-native) - the Open Source; GitHub **repository** for React Native.
->>>>>>> 0a71438 (Initial commit)
+```
+src/
+├── components/          # Reusable UI components
+│   ├── Habit.tsx       # Individual habit display
+│   ├── HabitDetailsModal.tsx
+│   ├── LogDetailsModal.tsx
+│   └── StreakList.tsx  # Visual streak calendar
+├── contexts/           # React contexts
+│   └── AuthContext.tsx # Authentication state
+├── screens/            # Main app screens
+│   ├── HomeScreen.tsx  # Main habit list
+│   ├── LoginScreen.tsx
+│   └── RegisterScreen.tsx
+├── services/           # API services
+│   └── api.ts         # HTTP client & API methods
+├── styles/            # Styling
+│   ├── theme.ts       # Color palette & design tokens
+│   └── commonStyles.ts
+├── types/             # TypeScript types
+│   └── models.ts      # Data models & interfaces
+└── utils/             # Utility functions
+    └── streakCalculator.ts
+```
+
+## API Endpoints
+
+The app communicates with these backend endpoints:
+
+### Authentication
+- `POST /users/register` - Register new user
+- `POST /users/login` - Login and get JWT token
+- `GET /users/{id}` - Get user details
+- `PUT /users/{id}` - Update user
+- `DELETE /users/{id}` - Delete user
+
+### Habits
+- `GET /habits` - Get all user habits
+- `POST /habits` - Create new habit
+- `GET /habits/{id}` - Get specific habit
+- `PUT /habits/{id}` - Update habit
+- `DELETE /habits/{id}` - Delete habit
+
+### Logs
+- `GET /habits/{habit_id}/logs` - Get all logs for a habit
+- `POST /habits/{habit_id}/logs` - Create new log
+- `GET /logs/{id}` - Get specific log
+- `PUT /logs/{id}` - Update log
+- `DELETE /logs/{id}` - Delete log
+
+## Troubleshooting
+
+### Cannot Connect to Backend
+
+- Verify the backend API is running (`curl http://localhost:8080/health`)
+- Check the API_BASE_URL in `src/services/api.ts`
+- For Android emulator, use `10.0.2.2` instead of `localhost`
+- For physical devices, use your computer's local IP address
+- Ensure your firewall allows the connection
+
+### Build Errors
+
+**iOS:**
+```bash
+cd ios
+pod deintegrate
+pod install
+cd ..
+npm run ios
+```
+
+**Android:**
+```bash
+cd android
+./gradlew clean
+cd ..
+npm run android
+```
+
+### Metro Bundler Issues
+
+```bash
+npm start -- --reset-cache
+```
+
+### Missing Dependencies
+
+```bash
+npm install @react-native-async-storage/async-storage
+```
+
+## Development
+
+### Running Tests
+
+```bash
+npm test
+# or
+yarn test
+```
+
+### Linting
+
+```bash
+npm run lint
+# or
+yarn lint
+```
+
+### Type Checking
+
+```bash
+npx tsc --noEmit
+```
+
+## Security Considerations
+
+- **JWT Tokens**: Stored securely in AsyncStorage
+- **Password Requirements**: Minimum 8 characters
+- **Input Validation**: All inputs are validated on both client and server
+- **Authentication**: All habit and log endpoints require valid JWT token
+- **Authorization**: Users can only access their own data
+
+## Design Principles
+
+1. **Modern & Minimal**: Clean interface with plenty of white space
+2. **Pastel Colors**: Soft, easy-on-the-eyes color palette
+3. **Rounded Corners**: All buttons and cards have rounded corners
+4. **Sans-serif Typography**: Clear, readable system fonts
+5. **Intuitive UX**: Clear visual feedback and confirmation dialogs
+6. **Mobile-First**: Optimized for touch interactions
+
+## Future Enhancements
+
+Potential features for future versions:
+- Push notifications for habit reminders
+- Habit categories and filtering
+- Statistics and analytics dashboard
+- Social features (share streaks with friends)
+- Dark mode support
+- Custom habit icons
+- Export data functionality
+
+## License
+
+This project is for evaluation purposes.
+
+## Support
+
+For issues or questions, please refer to the project documentation or create an issue in the repository.
+
+---
+
+Built with ❤️ using React Native and Go
