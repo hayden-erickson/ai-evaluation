@@ -16,6 +16,7 @@ type UserService interface {
 	GetUser(id int64) (*models.User, error)
 	UpdateUser(id int64, req *models.UpdateUserRequest) (*models.User, error)
 	DeleteUser(id int64) error
+	GenerateToken(userID int64) (string, error)
 }
 
 // userService implements UserService
@@ -134,4 +135,13 @@ func (s *userService) DeleteUser(id int64) error {
 		return fmt.Errorf("failed to delete user: %w", err)
 	}
 	return nil
+}
+
+// GenerateToken generates a JWT token for a user
+func (s *userService) GenerateToken(userID int64) (string, error) {
+	token, err := s.jwtManager.GenerateToken(userID, 24*time.Hour)
+	if err != nil {
+		return "", fmt.Errorf("failed to generate token: %w", err)
+	}
+	return token, nil
 }
