@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # Habit Tracker REST API
 
 A RESTful API built in Go for tracking user habits with JWT-based authentication, SQLite database, and comprehensive security features.
@@ -301,7 +300,6 @@ curl -X POST http://localhost:8080/habits \
 ## License
 
 MIT
-=======
 This is a new [**React Native**](https://reactnative.dev) project, bootstrapped using [`@react-native-community/cli`](https://github.com/react-native-community/cli).
 
 # Getting Started
@@ -399,4 +397,3 @@ To learn more about React Native, take a look at the following resources:
 - [Learn the Basics](https://reactnative.dev/docs/getting-started) - a **guided tour** of the React Native **basics**.
 - [Blog](https://reactnative.dev/blog) - read the latest official React Native **Blog** posts.
 - [`@facebook/react-native`](https://github.com/facebook/react-native) - the Open Source; GitHub **repository** for React Native.
->>>>>>> 0a71438 (Initial commit)
