@@ -54,10 +54,23 @@ func (h *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Return the created user
+	// Generate a token for the newly registered user (auto-login)
+	token, err := h.service.GenerateToken(user.ID)
+	if err != nil {
+		log.Printf("Failed to generate token after registration: %v", err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	// Return the user and token (similar to login response)
+	resp := models.LoginResponse{
+		Token: token,
+		User:  *user,
+	}
+
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(user)
+	json.NewEncoder(w).Encode(resp)
 }
 
 // Login handles user login (POST /users/login)
