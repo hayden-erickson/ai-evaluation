@@ -1,4 +1,137 @@
-# Habit Tracker REST API
+# Habit Tracker
+
+A full-stack habit tracking application with a React Native mobile app and a RESTful API backend built in Go. Track your daily habits, build streaks, and maintain positive routines with a modern, minimal interface.
+
+## Features
+
+### Mobile App
+- **Beautiful UI** - Modern, minimal design with pastel colors and rounded corners
+- **Habit Tracking** - Create and manage multiple habits
+- **Streak Counting** - Track consecutive days (allows 1-day skip before reset)
+- **Daily Logging** - Log habit completions with optional notes
+- **Recent Activity** - View the last 7 days of activity for each habit
+- **User Authentication** - Secure login and registration
+
+### Backend API
+- **JWT-based authentication** - Secure token-based authentication
+- **Input validation** - Comprehensive request validation for all endpoints
+- **Error logging** - All errors are logged with appropriate context
+- **HTTP status codes** - Proper error responses with meaningful messages
+- **Modular architecture** - Separation of concerns with repository and service layers
+- **Dependency injection** - Clean, testable code structure
+- **Security headers** - XSS protection, clickjacking prevention, CSP
+- **RBAC** - Role-based access control (users can only access their own data)
+- **SQLite database** - Lightweight database for local development
+
+## Prerequisites
+
+### For Backend
+- Go 1.21 or higher
+- SQLite3
+
+### For Mobile App
+- Node.js 20 or higher
+- React Native development environment ([Setup Guide](https://reactnative.dev/docs/set-up-your-environment))
+- For iOS: Xcode and CocoaPods
+- For Android: Android Studio and Android SDK
+
+## Installation
+
+1. Clone the repository:
+```bash
+git clone https://github.com/hayden-erickson/ai-evaluation.git
+cd ai-evaluation
+```
+
+### Backend Setup
+
+2. Install Go dependencies:
+```bash
+go mod download
+```
+
+3. (Optional) Set environment variables:
+```bash
+export PORT=8080                    # Default: 8080
+export JWT_SECRET=your-secret-key   # Default: "default-secret-key-change-in-production"
+export DB_PATH=habits.db            # Default: habits.db
+```
+
+4. Run the backend server:
+```bash
+go run main.go
+```
+
+The server will start on port 8080 (or the port specified in the PORT environment variable).
+
+### Mobile App Setup
+
+5. Install npm dependencies:
+```bash
+npm install
+```
+
+6. For iOS, install CocoaPods dependencies:
+```bash
+# First time only
+bundle install
+
+# Install pods
+cd ios && bundle exec pod install && cd ..
+```
+
+7. Start the Metro bundler:
+```bash
+npm start
+```
+
+8. In a new terminal, run the app:
+
+**For iOS:**
+```bash
+npm run ios
+```
+
+**For Android:**
+```bash
+npm run android
+```
+
+## Configuration
+
+### Backend API URL
+
+By default, the mobile app connects to `http://localhost:8080`. To connect to a different backend:
+
+1. Open `src/services/api.ts`
+2. Update the `API_BASE_URL` constant:
+   ```typescript
+   const API_BASE_URL = 'http://your-backend-url:8080';
+   ```
+
+For iOS simulator, use `http://localhost:8080`
+For Android emulator, use `http://10.0.2.2:8080`
+For physical devices, use your computer's IP address (e.g., `http://192.168.1.100:8080`)
+
+## Usage
+
+### Getting Started
+
+1. Start the backend server (see Backend Setup)
+2. Launch the mobile app (see Mobile App Setup)
+3. Register a new account or login with existing credentials
+4. Add your first habit using the "+" button
+5. Track your daily progress by logging completions
+6. Build and maintain your streaks!
+
+### Understanding Streaks
+
+- A streak continues if you log a habit daily
+- You can skip 1 day without breaking your streak
+- Missing 2 or more consecutive days resets the streak to 0
+- The streak counter shows your current consecutive days
+
+## REST API
 
 A RESTful API built in Go for tracking user habits with JWT-based authentication, SQLite database, and comprehensive security features.
 
