@@ -14,7 +14,6 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
-  Alert,
 } from 'react-native';
 import {Habit, CreateHabitRequest, UpdateHabitRequest} from '../types';
 import {colors, spacing, borderRadius, fontSize, shadow} from '../styles/theme';

@@ -59,7 +59,6 @@ export function LoginScreen() {
     setIsLoading(true);
     try {
       await login(phoneNumber, password);
-    } catch (err) {
       // Error is handled by context and displayed below
     } finally {
       setIsLoading(false);
@@ -98,7 +97,6 @@ export function LoginScreen() {
       // Get timezone (simplified - using UTC for now)
       const timeZone = 'America/New_York';
       await register(name, phoneNumber, password, timeZone);
-    } catch (err) {
       // Error is handled by context and displayed below
     } finally {
       setIsLoading(false);

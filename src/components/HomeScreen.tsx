@@ -20,7 +20,7 @@ import {
 } from '../types';
 import {HabitList} from './HabitList';
 import {HabitDetailsModal} from './HabitDetailsModal';
-import {habitApi, ApiError} from '../services/api';
+import {habitApi} from '../services/api';
 import {colors, spacing, borderRadius, fontSize, shadow} from '../styles/theme';
 
 /**
@@ -37,6 +37,7 @@ export function HomeScreen() {
   // Load habits when component mounts
   useEffect(() => {
     loadHabits();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   /**
@@ -113,12 +114,8 @@ export function HomeScreen() {
       return;
     }
 
-    try {
-      await habitApi.deleteHabit(habitId, token);
-      await loadHabits();
-    } catch (err) {
-      Alert.alert('Error', 'Failed to delete habit. Please try again.');
-    }
+    await habitApi.deleteHabit(habitId, token);
+    await loadHabits();
   };
 
   /**

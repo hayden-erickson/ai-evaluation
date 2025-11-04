@@ -22,12 +22,11 @@ import {colors, spacing, borderRadius, fontSize, shadow} from '../styles/theme';
 import {
   calculateStreak,
   formatDay,
-  formatMonth,
   getLastNDays,
   isSameDay,
 } from '../utils/helpers';
 import {LogDetailsModal} from './LogDetailsModal';
-import {logApi, ApiError} from '../services/api';
+import {logApi} from '../services/api';
 
 interface HabitProps {
   habit: HabitType;
@@ -51,6 +50,7 @@ export function Habit({habit, token, onEdit, onDelete, onUpdate}: HabitProps) {
   // Load logs when component mounts
   useEffect(() => {
     loadLogs();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   /**
@@ -103,8 +103,8 @@ export function Habit({habit, token, onEdit, onDelete, onUpdate}: HabitProps) {
       // Reload logs and notify parent
       await loadLogs();
       onUpdate();
-    } catch (err) {
-      throw err; // Let modal handle the error display
+    } catch (error) {
+      throw error; // Let modal handle the error display
     }
   };
 
@@ -121,13 +121,9 @@ export function Habit({habit, token, onEdit, onDelete, onUpdate}: HabitProps) {
           text: 'Delete',
           style: 'destructive',
           onPress: async () => {
-            try {
-              await logApi.deleteLog(log.id, token);
-              await loadLogs();
-              onUpdate();
-            } catch (err) {
-              Alert.alert('Error', 'Failed to delete log');
-            }
+            await logApi.deleteLog(log.id, token);
+            await loadLogs();
+            onUpdate();
           },
         },
       ],
