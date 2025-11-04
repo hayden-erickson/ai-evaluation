@@ -1,44 +1,72 @@
 /**
- * Sample React Native App
- * https://github.com/facebook/react-native
- *
+ * Main App component for the Habit Tracker application
  * @format
  */
 
-import { NewAppScreen } from '@react-native/new-app-screen';
-import { StatusBar, StyleSheet, useColorScheme, View } from 'react-native';
-import {
-  SafeAreaProvider,
-  useSafeAreaInsets,
-} from 'react-native-safe-area-context';
+import React, {useState} from 'react';
+import {StatusBar, StyleSheet, View, ActivityIndicator} from 'react-native';
+import {SafeAreaProvider} from 'react-native-safe-area-context';
+import {AuthProvider, useAuth} from './src/services/AuthContext';
+import {LoginScreen} from './src/screens/LoginScreen';
+import {RegisterScreen} from './src/screens/RegisterScreen';
+import {HomeScreen} from './src/screens/HomeScreen';
+import {theme} from './src/styles/theme';
 
-function App() {
-  const isDarkMode = useColorScheme() === 'dark';
+/**
+ * Main navigation component
+ * Handles authentication flow and screen navigation
+ */
+function AppNavigator() {
+  const {isAuthenticated, isLoading} = useAuth();
+  const [showRegister, setShowRegister] = useState(false);
 
-  return (
-    <SafeAreaProvider>
-      <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
-      <AppContent />
-    </SafeAreaProvider>
-  );
+  // Show loading spinner while checking auth state
+  if (isLoading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={theme.colors.primary} />
+      </View>
+    );
+  }
+
+  // Show appropriate screen based on auth state
+  if (!isAuthenticated) {
+    return showRegister ? (
+      <RegisterScreen onNavigateToLogin={() => setShowRegister(false)} />
+    ) : (
+      <LoginScreen onNavigateToRegister={() => setShowRegister(true)} />
+    );
+  }
+
+  return <HomeScreen />;
 }
 
-function AppContent() {
-  const safeAreaInsets = useSafeAreaInsets();
-
+/**
+ * Root App component
+ */
+function App() {
   return (
-    <View style={styles.container}>
-      <NewAppScreen
-        templateFileName="App.tsx"
-        safeAreaInsets={safeAreaInsets}
-      />
-    </View>
+    <SafeAreaProvider>
+      <AuthProvider>
+        <StatusBar barStyle="dark-content" backgroundColor={theme.colors.background} />
+        <View style={styles.container}>
+          <AppNavigator />
+        </View>
+      </AuthProvider>
+    </SafeAreaProvider>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: theme.colors.background,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: theme.colors.background,
   },
 });
 
