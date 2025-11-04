@@ -3,6 +3,7 @@
  */
 
 import { Log } from '../types';
+import { STREAK_DISPLAY_DAYS } from '../config';
 
 /**
  * Calculate the current streak for a habit based on its logs
@@ -46,9 +47,6 @@ export function calculateStreak(logs: Log[]): number {
     // If log is 1 day before expected (user skipped a day), still count it
     else if (daysDifference === 1) {
       streak++;
-      // Adjust for the skipped day
-      const nextExpectedDate = new Date(today);
-      nextExpectedDate.setDate(today.getDate() - streak);
     } 
     // If gap is more than 1 day, streak is broken
     else if (daysDifference > 1) {
@@ -76,12 +74,12 @@ export function calculateStreak(logs: Log[]): number {
  * Get logs grouped by date for display in the streak list
  * 
  * @param logs - Array of logs
- * @param days - Number of days to display (default 7)
+ * @param days - Number of days to display (default from config)
  * @returns Object mapping date strings to logs
  */
 export function getLogsGroupedByDate(
   logs: Log[],
-  days: number = 7
+  days: number = STREAK_DISPLAY_DAYS
 ): Record<string, Log | null> {
   const today = new Date();
   today.setHours(0, 0, 0, 0);

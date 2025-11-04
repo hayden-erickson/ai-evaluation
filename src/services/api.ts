@@ -15,9 +15,7 @@ import {
   CreateLogRequest,
   UpdateLogRequest,
 } from '../types';
-
-// Default API base URL - can be configured via environment
-const API_BASE_URL = 'http://localhost:8080';
+import { API_BASE_URL } from '../config';
 
 class ApiService {
   private baseUrl: string;
