@@ -84,7 +84,14 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({
         name: name.trim(),
         phone_number: phoneNumber.trim(),
         password,
-        time_zone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC',
+        // Try to get timezone, fallback to UTC if unavailable
+        time_zone: (() => {
+          try {
+            return Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+          } catch {
+            return 'UTC';
+          }
+        })(),
       });
     } catch {
       // Error is already handled by AuthContext

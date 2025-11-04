@@ -213,7 +213,7 @@ export const HabitComponent: React.FC<HabitComponentProps> = ({
         </ScrollView>
       )}
 
-      {/* Log modal would be rendered here if we import it */}
+      {/* Log details modal */}
       <LogDetailsModal
         visible={showLogModal}
         log={selectedLog}

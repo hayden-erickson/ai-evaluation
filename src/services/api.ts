@@ -101,7 +101,11 @@ const apiRequest = async <T>(
 
   // Handle empty responses (like 204 No Content)
   const text = await response.text();
-  return text ? JSON.parse(text) : (null as any);
+  if (!text) {
+    // Return undefined for void responses, let TypeScript handle the type
+    return undefined as T;
+  }
+  return JSON.parse(text);
 };
 
 // Authentication API calls

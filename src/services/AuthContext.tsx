@@ -46,14 +46,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({children}) => {
 
   /**
    * Check if user is already authenticated
+   * Note: In a production app, you should validate the token with the backend
+   * or decode the JWT to check expiration
    */
   const checkAuth = async () => {
     try {
       const token = await api.getToken();
       if (token) {
-        // Token exists but we don't have the user data stored
-        // In a real app, you might want to fetch user data or decode the JWT
-        // For now, we'll just set loading to false
+        // Token exists - in a real app, validate it with the backend or decode JWT
+        // For now, we'll require re-login on app restart for security
         setIsLoading(false);
       } else {
         setIsLoading(false);

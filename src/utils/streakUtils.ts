@@ -8,7 +8,7 @@ import {Log} from '../types';
  * Calculate the current streak for a habit
  * Users are allowed to skip one day before their streak resets
  * 
- * @param logs - Array of log entries for a habit (sorted by created_at desc)
+ * @param logs - Array of log entries for a habit (will be sorted internally)
  * @returns The current streak count
  */
 export const calculateStreak = (logs: Log[]): number => {
