@@ -50,3 +50,6 @@ Thumbs.db
 # Temporary files
 tmp/
 temp/
+
+*mysql-secret.yaml
+*app-secret.yaml

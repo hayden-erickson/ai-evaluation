@@ -9,7 +9,7 @@ import (
 	"path/filepath"
 	"sort"
 
-	_ "github.com/mattn/go-sqlite3"
+	_ "github.com/go-sql-driver/mysql"
 )
 
 // Database wraps the database connection
@@ -18,18 +18,22 @@ type Database struct {
 }
 
 // NewDatabase creates a new database connection and runs migrations
-func NewDatabase(dbPath string) (*Database, error) {
-	// Create database file if it doesn't exist
-	db, err := sql.Open("sqlite3", dbPath)
+func NewDatabase(dsn string) (*Database, error) {
+	// Connect to MySQL database
+	db, err := sql.Open("mysql", dsn)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open database: %w", err)
 	}
 
-	// Enable foreign key constraints
-	if _, err := db.Exec("PRAGMA foreign_keys = ON"); err != nil {
+	// Test the connection
+	if err := db.Ping(); err != nil {
 		db.Close()
-		return nil, fmt.Errorf("failed to enable foreign keys: %w", err)
+		return nil, fmt.Errorf("failed to ping database: %w", err)
 	}
+
+	// Set connection pool settings
+	db.SetMaxOpenConns(25)
+	db.SetMaxIdleConns(5)
 
 	database := &Database{DB: db}
 

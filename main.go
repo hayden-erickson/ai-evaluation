@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -26,13 +27,34 @@ func main() {
 		log.Println("Warning: Using default JWT secret. Set JWT_SECRET environment variable in production.")
 	}
 
-	dbPath := os.Getenv("DB_PATH")
-	if dbPath == "" {
-		dbPath = "habits.db"
+	// MySQL connection configuration
+	dbUser := os.Getenv("DB_USER")
+	if dbUser == "" {
+		dbUser = "root"
 	}
 
+	dbPassword := os.Getenv("DB_PASSWORD")
+	if dbPassword == "" {
+		log.Println("Warning: DB_PASSWORD not set. Using empty password.")
+	}
+
+	dbHost := os.Getenv("DB_HOST")
+	if dbHost == "" {
+		dbHost = "localhost:3306"
+	}
+
+	dbName := os.Getenv("DB_NAME")
+	if dbName == "" {
+		dbName = "habits"
+	}
+
+	// Build MySQL DSN (Data Source Name)
+	// Format: username:password@tcp(host:port)/dbname?parseTime=true
+	dsn := fmt.Sprintf("%s:%s@tcp(%s)/%s?parseTime=true&multiStatements=true",
+		dbUser, dbPassword, dbHost, dbName)
+
 	// Initialize database
-	database, err := config.NewDatabase(dbPath)
+	database, err := config.NewDatabase(dsn)
 	if err != nil {
 		log.Fatalf("Failed to initialize database: %v", err)
 	}
