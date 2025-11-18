@@ -1,0 +1,89 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: db-query-cronjob
+  namespace: default
+spec:
+  schedule: "0 2 * * *" # Runs at 2 AM UTC daily
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          serviceAccountName: db-query-sa # Assumes a Service Account with this name exists and is annotated with an IAM role ARN
+          containers:
+          - name: db-query-container
+            image: postgres:13-alpine # Using a standard postgres image which includes psql
+            command: ["/bin/sh", "-c"]
+            args:
+            - |
+              # This script assumes the aws-cli is installed in the container. 
+              # If not, you would need to use an image that has it, or use an initContainer to fetch the secret.
+              # For this example, we'll assume the secret values are mounted as environment variables
+              # through a secret object created from Secrets Manager, for simplicity.
+              
+              echo "Connecting to database and running query..."
+              
+              export PGPASSWORD=$DB_PASSWORD
+              
+              psql -h $DB_HOST -U $DB_USER -d $DB_NAME -c "SELECT * FROM your_table_name;"
+              
+              echo "Query finished."
+
+            env:
+            # These environment variables should be populated from a Kubernetes secret,
+            # which in turn can be populated from AWS Secrets Manager using a tool like
+            # the AWS Secrets and Configuration Provider (ASCP) for Kubernetes Secrets Store CSI Driver.
+            - name: DB_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: db-credentials-secret # Name of the k8s secret
+                  key: host
+            - name: DB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: db-credentials-secret
+                  key: username
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: db-credentials-secret
+                  key: password
+            - name: DB_NAME
+              valueFrom:
+                secretKeyRef:
+                  name: db-credentials-secret
+                  key: dbname
+          restartPolicy: OnFailure
+---
+# You would also need a ServiceAccount.
+# The IAM role ARN annotation is crucial for IRSA (IAM Roles for Service Accounts) to work on EKS.
+# Replace 'arn:aws:iam::123456789012:role/EKS-DB-Query-Role' with your actual IAM role ARN.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: db-query-sa
+  namespace: default
+  annotations:
+    # This annotation is what links the Service Account to the IAM role.
+    eks.amazonaws.com/role-arn: "arn:aws:iam::123456789012:role/EKS-DB-Query-Role"
+
+---
+# For the above CronJob to work, you need a Kubernetes secret named 'db-credentials-secret'.
+# You can create this secret manually, or automate its creation and synchronization from AWS Secrets Manager.
+# Here is an example of how you could manually create it:
+#
+# apiVersion: v1
+# kind: Secret
+# metadata:
+#   name: db-credentials-secret
+#   namespace: default
+# type: Opaque
+# data:
+#   host: "your-db-host-base64-encoded"
+#   username: "your-db-user-base64-encoded"
+#   password: "your-db-password-base64-encoded"
+#   dbname: "your-db-name-base64-encoded"
+#
+# To create the secret from AWS Secrets Manager, you would typically use the 
+# Kubernetes Secrets Store CSI Driver along with the AWS Secrets and Configuration Provider (ASCP).
+# This is the recommended, most secure approach.
