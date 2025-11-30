@@ -1,0 +1,248 @@
+REQUIREMENTS FOR USER DELETION STORED PROCEDURE
+================================================
+
+OVERVIEW
+--------
+Create a MySQL stored procedure that deletes users in batches while archiving their data across multiple related tables. The procedure should handle errors gracefully, log all operations, and only delete users meeting specific criteria.
+
+PROCEDURE SPECIFICATIONS
+------------------------
+- Procedure Name: delete_users_in_batches
+- No input parameters required
+- Processes users in batches based on batch_id
+- Uses temporary tables for batch processing
+- Implements comprehensive error handling with rollback capability
+
+DATABASE REQUIREMENTS
+---------------------
+
+1. Primary Tables Required:
+   - deleted_users_info: Tracks users to be deleted with batch_id, deletion_status, and note fields
+   - user_deletion_detail: Logs all operations with batch_id, table_name, note, error_info, last_updated_by
+   - users: Main users table with id, last_login_date fields
+   - users_roles: User role assignments with user_id, role_id
+   - roles: Role definitions with id, name ('Tenant', 'Tenant 24/7')
+
+2. Archive Database Schema:
+   - Separate database named "archived_data"
+   - Mirror tables for each source table with "_archived" suffix
+   - Must support all columns from source tables
+
+3. Related Tables to Process (29 tables):
+   - unit_status_updates
+   - unit_overrides
+   - transfer
+   - support_activity
+   - unlock_override_pins
+   - user_acknowledgement
+   - user_login_history
+   - user_site_bookmarks
+   - users_dashboard
+   - users_notifications_settings
+   - users_zone_triggers
+   - v2_app_details
+   - v2_tracking_ids
+   - watch_users
+   - 2_factor_auth_pin
+   - access_codes
+   - devices
+   - digital_audits
+   - entry_activity
+   - permissions
+   - pending_notifications
+   - oauth_session_store
+   - note_comments
+   - invalid_entry_attempts
+   - users_roles
+   - users (main table - deleted last)
+
+4. Reference Tables for Validation:
+   - v2_shares: Check owner_id and recipient_id
+   - v2_units: Check user_id
+   - auction: Check user_id
+   - prelets: Check user_id
+
+BATCH PROCESSING LOGIC
+-----------------------
+
+1. Batch ID Management:
+   - Get maximum batch_id from deleted_users_info
+   - Increment by 1 for new batch
+   - Update records with NULL batch_id to new batch_id
+   - Commit after batch_id assignment
+
+2. User Status Updates:
+   - Mark eligible users as 'in progress'
+   - Mark ineligible users as 'canceled' with appropriate notes
+
+USER ELIGIBILITY CRITERIA
+--------------------------
+
+Users are ELIGIBLE for deletion if ALL conditions are met:
+1. Listed in deleted_users_info table
+2. deletion_status = 'pending'
+3. last_login_date < 1 year ago (DATE_SUB(CURRENT_TIMESTAMP(), INTERVAL 1 YEAR))
+4. Role is 'Tenant' OR 'Tenant 24/7'
+5. NOT an owner or recipient in v2_shares
+6. NOT associated with any v2_units
+7. NOT associated with any auction records
+8. NOT associated with any prelets records
+
+Users are CANCELED (not deleted) if:
+1. They are owner or shared user in v2_shares
+   - Status: 'canceled'
+   - Note: 'The user_id is either an Owner or Shared user, so cannot delete'
+
+2. They have associated units
+   - Status: 'canceled'
+   - Note: 'The user_id is having a unit, so cannot delete'
+
+3. They have associated auctions
+   - Status: 'canceled'
+   - Note: 'The user_id is having an auction, so cannot delete'
+
+4. They have associated prelets
+   - Status: 'canceled'
+   - Note: 'The user_id is having a prelet, so cannot delete'
+
+DELETION PROCESS FOR EACH TABLE
+--------------------------------
+
+For each related table:
+1. Check if records exist for current batch users (EXISTS query)
+2. If records exist:
+   a. Insert records into corresponding archived_data table
+   b. Record row count of inserted records
+   c. Log insert operation to user_deletion_detail
+   d. Delete from source table WHERE user_id matches AND record exists in archive
+   e. Record row count of deleted records
+   f. Log delete operation to user_deletion_detail
+   g. COMMIT transaction
+3. If no records exist, skip table processing
+
+TEMPORARY TABLE STRUCTURE
+--------------------------
+- Table Name: temp_user_ids
+- Created per batch, dropped at start of each batch
+- Columns:
+  * id: INT NOT NULL PRIMARY KEY (from deleted_users_info.id)
+  * user_id: INT NOT NULL (user identifier)
+- Populated from deleted_users_info WHERE batch_id matches and deletion_status='in progress'
+
+ERROR HANDLING REQUIREMENTS
+----------------------------
+
+1. Error Handler Declaration:
+   - Type: CONTINUE HANDLER FOR SQLEXCEPTION
+   - Captures: SQLSTATE, MYSQL_ERRNO, MESSAGE_TEXT
+   - Format: "ERROR {errno} ({sqlstate}): {message}"
+
+2. On Error Actions:
+   - Execute ROLLBACK
+   - Store error info in v_error_info variable
+   - Insert error record into user_deletion_detail with:
+     * batch_id
+     * table_name (table being processed when error occurred)
+     * note: 'failed'
+     * error_info: full error message
+     * last_updated_by: v_user
+   - COMMIT error log
+   - Set done flag to TRUE to exit loop
+
+LOGGING REQUIREMENTS
+---------------------
+
+Log to user_deletion_detail table for:
+1. Archive operations: "Number of Records inserted : {count}"
+2. Delete operations: "Number of Records deleted : {count}"
+3. Error operations: 'failed' with error_info populated
+
+Each log entry includes:
+- batch_id: Current batch identifier
+- table_name: Table being processed
+- note: Operation description or 'failed'
+- error_info: Error details (if applicable)
+- last_updated_by: User ID performing operation
+
+VARIABLE DECLARATIONS
+---------------------
+- done: INT DEFAULT FALSE (loop control)
+- num_deleted: INT (count of records in batch)
+- v_batch_id: INT (current batch identifier)
+- v_note: VARCHAR(255) (operation notes)
+- v_error_info: VARCHAR(300) (error details)
+- v_rec_cnt: INT DEFAULT 0 (record count tracker)
+- v_tab_name: VARCHAR(50) (current table name)
+- v_user: INT DEFAULT {environment-specific} (user performing deletion)
+  * Production: 2920483
+  * Pre-production: 2387943
+  * Beta: 4365
+  * Alpha: 1033278
+
+LOOP STRUCTURE
+--------------
+
+Outer Loop (Outer_check):
+1. Continue WHILE NOT done
+2. Process one batch per iteration
+3. Exit when no more eligible users found (num_deleted = 0)
+4. Use LEAVE Outer_check to exit
+
+Processing Order per Batch:
+1. Assign/increment batch_id
+2. Update user statuses (in progress/canceled)
+3. Create and populate temporary table
+4. Check if batch has records
+5. Process each related table in order
+6. Delete from users table last
+7. Update deleted_users_info status to 'completed'
+8. Clean up temporary table at end
+
+TRANSACTION MANAGEMENT
+----------------------
+- COMMIT after each major operation block
+- COMMIT after batch_id assignment
+- COMMIT after status updates
+- COMMIT after each table's archive/delete cycle
+- ROLLBACK only in error handler
+
+COMPLETION HANDLING
+-------------------
+
+After all batches processed:
+1. Update deleted_users_info records:
+   - Set deletion_status = 'completed'
+   - Set note = 'the user_id is deleted'
+   - WHERE id IN temp_user_ids
+
+2. Return completion message:
+   - SELECT 'User deletion process completed.' AS message
+
+DELIMITER REQUIREMENTS
+----------------------
+- Change delimiter to $$ before procedure creation
+- Reset delimiter to ; after procedure creation
+- Required for procedure body containing semicolons
+
+PROCEDURE RECREATION
+--------------------
+- Drop existing procedure if exists: DROP PROCEDURE IF EXISTS delete_users_in_batches
+- Ensures clean installation without conflicts
+
+PERFORMANCE CONSIDERATIONS
+---------------------------
+1. Use EXISTS instead of COUNT(*) for existence checks
+2. Use temporary tables for batch user lists
+3. Verify archive before deleting (EXISTS subquery in DELETE)
+4. Index requirements:
+   - deleted_users_info: batch_id, deletion_status
+   - All user_id foreign key columns
+   - users: last_login_date
+   - users_roles: user_id, role_id
+   - Archive tables: matching indexes from source tables
+
+ENVIRONMENT-SPECIFIC CONFIGURATION
+-----------------------------------
+- v_user variable must be set based on environment:
+  * Modify before deployment to correct environment
+  * Critical for audit trail accuracy
